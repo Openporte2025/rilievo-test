@@ -28,7 +28,7 @@ let state = {
 };
 
 // ⚙️ VERSIONE APP - UNICO PUNTO DA MODIFICARE
-const APP_VERSION = '8.500';
+const APP_VERSION = '5.75';
 const APP_VERSION_NOTE = '📦 Integrazione opzioni-comuni.js - Costanti condivise';
 
 // 📦 GitHub Configuration
