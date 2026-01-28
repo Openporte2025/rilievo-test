@@ -3,6 +3,15 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.78: TIPO APERTURA F/PF OBBLIGATORIO (28 GEN 2026)
+// - Tipo Apertura F/PF non ha più default - OBBLIGATORIO selezionare
+// - UI con bordo arancione e ⚠️ se non selezionato
+// - Validazione in validateMisure() - errore se mancante
+// - Aggiunto al calcolo completamento posizione (11 punti)
+// - Dropdown Vetri da FINSTRAL_OPZIONI.vetri (database centralizzato)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 🆕 v5.77: INTEGRAZIONE DATA_ACCESSOR (28 GEN 2026)
 // - Normalizzazione dati all'avvio per uniformare qta/quantita
 // - Funzione normalizzaProdottoRilievo() per singoli prodotti
@@ -6778,6 +6787,14 @@ function validateMisure(project, pos) {
     const errors = [];
     const warnings = [];
     
+    // 🆕 v5.78: Tipo Apertura OBBLIGATORIO
+    if (!pos.tipoApertura || (pos.tipoApertura !== 'F' && pos.tipoApertura !== 'PF')) {
+        errors.push({
+            field: 'tipoApertura',
+            message: '⚠️ Seleziona Tipo Apertura: F (Finestra) o PF (Porta-finestra)'
+        });
+    }
+    
     const misure = pos.misure || {};
     
     // Prendi caratteristiche muro (override o globali)
@@ -7144,22 +7161,29 @@ function calculatePositionCompleteness(pos, project) {
     const missing = [];
     
     // ========================================
-    // STEP 1: AMBIENTE (33 punti)
+    // STEP 1: AMBIENTE + TIPO APERTURA (33 punti)
     // ========================================
     let step1Score = 0;
     
-    // Nome posizione (16.5 punti)
+    // Nome posizione (11 punti)
     if (pos.name && pos.name.trim() !== '') {
-        step1Score += 16.5;
+        step1Score += 11;
     } else {
         missing.push('Nome posizione');
     }
     
-    // Ambiente (16.5 punti)
+    // Ambiente (11 punti)
     if (pos.ambiente && pos.ambiente.trim() !== '') {
-        step1Score += 16.5;
+        step1Score += 11;
     } else {
         missing.push('Ambiente');
+    }
+    
+    // 🆕 v5.78: Tipo Apertura F/PF OBBLIGATORIO (11 punti)
+    if (pos.tipoApertura === 'F' || pos.tipoApertura === 'PF') {
+        step1Score += 11;
+    } else {
+        missing.push('Tipo Apertura (F/PF)');
     }
     
     score += Math.round(step1Score);
@@ -8176,7 +8200,7 @@ function addPosition(projectId) {
             ambiente: '',
             ambienteMode: 'select',  // 🆕 Traccia modalità input: 'select' o 'input'
             quantita: '1',
-            tipoApertura: 'F',  // 🆕 v5.77: Default Finestra (F) o Porta-finestra (PF)
+            tipoApertura: null,  // 🆕 v5.78: OBBLIGATORIO - nessun default, l'utente deve scegliere F o PF
             misure: {},
             // 📋 AUTO-SYNC: Inizializza TUTTI i rilievi con valori globali
             rilievo: {
@@ -17135,22 +17159,37 @@ function renderMisureTab(project, pos) {
             <div class="bg-gray-50 rounded-lg p-4">
                 <p class="text-sm font-bold text-gray-700 mb-2">Misure Principali (mm)</p>
                 
-                <!-- 🆕 v5.77: Tipo Apertura F/PF -->
-                <div class="mb-3 flex items-center gap-3">
-                    <label class="text-xs font-semibold text-gray-600">Tipo Apertura:</label>
-                    <div class="flex gap-2">
-                        <button type="button" 
-                                onclick="updateTipoApertura('${project.id}', '${pos.id}', 'F')"
-                                class="px-3 py-1 text-sm font-bold rounded-lg transition-all ${(pos.tipoApertura || 'F') === 'F' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-600 hover:bg-blue-100'}">
-                            🪟 F (Finestra)
-                        </button>
-                        <button type="button"
-                                onclick="updateTipoApertura('${project.id}', '${pos.id}', 'PF')"
-                                class="px-3 py-1 text-sm font-bold rounded-lg transition-all ${pos.tipoApertura === 'PF' ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 text-gray-600 hover:bg-green-100'}">
-                            🚪 PF (Porta-finestra)
-                        </button>
+                <!-- 🆕 v5.78: Tipo Apertura F/PF - OBBLIGATORIO -->
+                ${(() => {
+                    const tipoApertura = pos.tipoApertura || null;
+                    const isSelected = tipoApertura === 'F' || tipoApertura === 'PF';
+                    const borderClass = isSelected ? 'border-green-400' : 'border-orange-400';
+                    const bgClass = isSelected ? 'bg-green-50' : 'bg-orange-50';
+                    
+                    return `
+                    <div class="mb-4 p-3 border-2 rounded-lg ${borderClass} ${bgClass}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-bold text-gray-700">Tipo Apertura:</label>
+                                ${!isSelected ? '<span class="text-orange-600 text-sm font-bold">⚠️ Obbligatorio</span>' : '<span class="text-green-600 text-sm">✓</span>'}
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" 
+                                        onclick="updateTipoApertura('${project.id}', '${pos.id}', 'F')"
+                                        class="px-4 py-2 text-sm font-bold rounded-lg transition-all border-2 ${tipoApertura === 'F' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:bg-blue-50'}">
+                                    🪟 F (Finestra)
+                                </button>
+                                <button type="button"
+                                        onclick="updateTipoApertura('${project.id}', '${pos.id}', 'PF')"
+                                        class="px-4 py-2 text-sm font-bold rounded-lg transition-all border-2 ${tipoApertura === 'PF' ? 'bg-green-600 text-white border-green-600 shadow-lg' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400 hover:bg-green-50'}">
+                                    🚪 PF (Porta-finestra)
+                                </button>
+                            </div>
+                        </div>
+                        ${!isSelected ? '<p class="text-xs text-orange-700 mt-2">👆 Seleziona se questa posizione è una Finestra o una Porta-finestra</p>' : ''}
                     </div>
-                </div>
+                    `;
+                })()}
                 
                 <p class="text-xs text-gray-500 mb-3">💡 Clicca <span class="text-red-500 font-bold">✗</span> se una misura non ti serve per questa posizione</p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="misure-grid-${pos.id}">
