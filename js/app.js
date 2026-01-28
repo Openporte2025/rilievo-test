@@ -1,12 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🪟 APP OPENPORTE - Logica Applicazione v5.76
+// 🪟 APP OPENPORTE - Logica Applicazione
 // ═══════════════════════════════════════════════════════════════════════════════
-// 
-// 🆕 v5.76: INTEGRAZIONE FINSTRAL_OPZIONI CENTRALIZZATE
-// Le liste per select Finstral ora vengono da:
-//   shared-database/database/finstral-opzioni.js
-// 
-// ⚠️ NON MODIFICARE LISTE QUI - Modifica SOLO finstral-opzioni.js
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.77: INTEGRAZIONE DATA_ACCESSOR (28 GEN 2026)
+// - Normalizzazione dati all'avvio per uniformare qta/quantita
+// - Funzione normalizzaProdottoRilievo() per singoli prodotti
+// - Funzione normalizzaProgettoRilievo() per intero progetto
+// - Preparazione per stampa preventivo da App Rilievo
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ⚡ FASE 024B: Sistema aggiornamenti parziali DOM (approccio cloud)
@@ -30,6 +31,83 @@ const ACCESSORI_TAPPARELLA = OPZIONI.ACCESSORI_TAPPARELLA;
 const getColoriGuide = OPZIONI.getColoriGuide;
 const getModelliTapparella = OPZIONI.getModelliTapparella;
 const getModelliTapparellaOptions = OPZIONI.getModelliTapparellaOptions;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.77: NORMALIZZAZIONE DATI CON DATA_ACCESSOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Normalizza un singolo prodotto per avere sempre sia 'qta' che 'quantita'
+ * @param {Object} prodotto - Oggetto prodotto (infisso, persiana, etc.)
+ * @returns {Object} Prodotto normalizzato
+ */
+function normalizzaProdottoRilievo(prodotto) {
+    if (!prodotto) return null;
+    
+    // Usa DATA_ACCESSOR se disponibile
+    if (typeof DATA_ACCESSOR !== 'undefined') {
+        const q = DATA_ACCESSOR.getQuantita(prodotto);
+        prodotto.quantita = q;
+        prodotto.qta = String(q); // App Rilievo usa qta come stringa
+    } else {
+        // Fallback manuale
+        const q = parseInt(prodotto.quantita) || parseInt(prodotto.qta) || 0;
+        prodotto.quantita = q;
+        prodotto.qta = String(q);
+    }
+    
+    return prodotto;
+}
+
+/**
+ * Normalizza tutte le posizioni di un progetto App Rilievo
+ * @param {Object} project - Oggetto progetto
+ * @returns {Object} Progetto normalizzato
+ */
+function normalizzaProgettoRilievo(project) {
+    if (!project) return project;
+    
+    // Normalizza posizioni in positions (formato GitHub)
+    if (project.positions && Array.isArray(project.positions)) {
+        project.positions.forEach(pos => {
+            if (pos.infisso) pos.infisso = normalizzaProdottoRilievo(pos.infisso);
+            if (pos.persiana) pos.persiana = normalizzaProdottoRilievo(pos.persiana);
+            if (pos.tapparella) pos.tapparella = normalizzaProdottoRilievo(pos.tapparella);
+            if (pos.zanzariera) pos.zanzariera = normalizzaProdottoRilievo(pos.zanzariera);
+            if (pos.cassonetto) pos.cassonetto = normalizzaProdottoRilievo(pos.cassonetto);
+            if (pos.blindata) pos.blindata = normalizzaProdottoRilievo(pos.blindata);
+            if (pos.portoncino) pos.portoncino = normalizzaProdottoRilievo(pos.portoncino);
+            if (pos.portaInterna) pos.portaInterna = normalizzaProdottoRilievo(pos.portaInterna);
+            if (pos.clickZip) pos.clickZip = normalizzaProdottoRilievo(pos.clickZip);
+        });
+    }
+    
+    // Normalizza anche rilievoInfissi (formato legacy)
+    if (project.rilievoInfissi && Array.isArray(project.rilievoInfissi)) {
+        project.rilievoInfissi.forEach(pos => {
+            if (pos.infisso) pos.infisso = normalizzaProdottoRilievo(pos.infisso);
+            if (pos.persiana) pos.persiana = normalizzaProdottoRilievo(pos.persiana);
+            if (pos.tapparella) pos.tapparella = normalizzaProdottoRilievo(pos.tapparella);
+            if (pos.zanzariera) pos.zanzariera = normalizzaProdottoRilievo(pos.zanzariera);
+            if (pos.cassonetto) pos.cassonetto = normalizzaProdottoRilievo(pos.cassonetto);
+        });
+    }
+    
+    return project;
+}
+
+/**
+ * Normalizza tutti i progetti nello state
+ */
+function normalizzaTuttiProgetti() {
+    if (!state || !state.projects) return;
+    
+    console.log('🔄 v5.77: Normalizzazione dati progetti...');
+    state.projects.forEach(project => {
+        normalizzaProgettoRilievo(project);
+    });
+    console.log(`✅ Normalizzati ${state.projects.length} progetti`);
+}
 
 
 
@@ -169,6 +247,9 @@ function loadState() {
             
             console.log('🔄 ESEGUENDO migrateSostituzioneComponenti...');
             migrateSostituzioneComponenti(); // 🔧 v4.92: Migra sostEsistente → sostTipo
+            
+            console.log('🔄 ESEGUENDO normalizzaTuttiProgetti...');
+            normalizzaTuttiProgetti(); // 🆕 v5.77: Normalizza qta/quantita
             
         } catch (e) {
             console.error('❌ Errore caricando stato da localStorage:', e);
@@ -1217,51 +1298,50 @@ function renderSelectColore(fieldName, currentValue, finituraValue, projectId, p
 
 // 🎨 FASE 30024b: Select COLORI STANDARD (NO custom input) - v4.29
 function renderSelectColoreStandard(fieldName, currentValue, finituraValue, projectId, posId, productType, label) {
-    // 🆕 v5.76: USA FINSTRAL_OPZIONI CENTRALIZZATE (da finstral-opzioni.js)
-    // Fallback a liste locali se FINSTRAL_OPZIONI non è caricato
+    // ✅ COLORI PVC CORRETTI (dal PDF Finstral pagina 1)
+    const coloriPVC = [
+        '01 - Bianco',              // extraliscio
+        '45 - Bianco',              // satinata
+        '27 - Bianco crema',        // satinata (🆕 v5.68: rinominato da "perla")
+        '42 - Bianco',              // goffrata
+        '07 - Bianco crema',        // goffrata (🆕 v5.68: rinominato)
+        '36 - Grigio topo',         // 🆕 v5.68: solo ALU-ALU/ALU-LEGNO
+        '46 - Grigio seta',         // satinata
+        '06 - Grigio (⚠️ scade 32/2026)',  // 🆕 v5.68: warning scadenza
+        '13 - Castagno decoro legno',   // goffrata
+        '19 - Rovere decoro legno',     // goffrata
+        '55 - Noce chiaro decoro legno' // goffrata
+    ];
     
-    const coloriPVC = (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.coloriPVC) 
-        ? FINSTRAL_OPZIONI.coloriPVC.map(c => c.nome)
-        : [
-            '01 - Bianco standard',
-            '42 - Bianco goffrato',
-            '45 - Bianco liscio',
-            '07 - Bianco puro',
-            '27 - Bianco crema',
-            '06 - Grigio (⚠️ scade 32/2026)',
-            '36 - Grigio topo',
-            '46 - Grigio seta',
-            '13 - Castagno decoro legno',
-            '19 - Rovere decoro legno',
-            '55 - Noce chiaro decoro legno'
-        ];
+    // ✅ COLORI ALLUMINIO - Solo decoro legno (dal PDF pagina 2, gruppo 1H)
+    const coloriAlluminioLegno = [
+        'L13 - Castagno verniciato',
+        'L14 - Mogano verniciato',
+        'L16 - Douglas verniciato',
+        'L18 - Noce verniciato',
+        'L19 - Rovere verniciato',
+        'L55 - Noce chiaro verniciato',
+        'LX01 - Rovere naturale',
+        'LX02 - Ciliegio scuro',
+        'LX03 - Pino verniciato',
+        'LX04 - Rovere venato'
+    ];
     
-    const coloriAlluminioLegno = (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.coloriAlluminio) 
-        ? FINSTRAL_OPZIONI.coloriAlluminio.map(c => c.nome)
-        : [
-            'L13 - Castagno verniciato',
-            'L14 - Mogano verniciato',
-            'L16 - Douglas verniciato',
-            'L18 - Noce verniciato',
-            'L19 - Rovere verniciato',
-            'L55 - Noce chiaro verniciato',
-            'LX01 - Rovere naturale',
-            'LX02 - Ciliegio scuro',
-            'LX03 - Pino verniciato',
-            'LX04 - Rovere venato'
-        ];
-    
-    // COLORI LEGNO (da FINDOOR_COLORI_LEGNO)
+    // 🆕 v5.68: COLORI LEGNO (da FINDOOR_COLORI_LEGNO)
     const coloriLegno = [
+        // Gruppo 0 - Base
         'G0 - Rovere naturale',
         'G0 - Faggio naturale',
         'G0 - Acero naturale',
+        // Gruppo 1
         'G1 - Rovere tinto',
         'G1 - Noce',
         'G1 - Ciliegio',
+        // Gruppo 2
         'G2 - Wengé',
         'G2 - Mogano',
         'G2 - Teak',
+        // Gruppo 3
         'G3 - Essenze speciali',
         'G3 - RAL su legno'
     ];
@@ -11782,9 +11862,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'tipoAnta',
                         project.configInfissi?.tipoAnta || '',
-                        (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.tipiAnta) 
-                            ? FINSTRAL_OPZIONI.tipiAnta.map(a => a.nome)
-                            : ['Classic-line', 'Step-line', 'Slim-line', 'Nova-line', 'Nova-line Plus'],
+                        ['Classic-line', 'Slim-line', 'Slim-line Cristal', 'Slim-line Twin', 'Slim-line Cristal Twin', 'Step-line', 'Step-line Door', 'Nova-line', 'Nova-line Plus', 'Nova-line Twin', 'Nova-line Cristal Twin'],
                         project.id,
                         null,
                         'infisso',
@@ -11795,7 +11873,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraInt',
                         project.configInfissi?.finituraInt || '',
-                        ['pvc', 'alluminio'],
+                        ['pvc', 'legno', 'alluminio', 'ceramica'],
                         project.id,
                         null,
                         'infisso',
@@ -11806,7 +11884,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraEst',
                         project.configInfissi?.finituraEst || '',
-                        ['pvc', 'alluminio'],
+                        ['pvc', 'legno', 'alluminio', 'ceramica'],
                         project.id,
                         null,
                         'infisso',
@@ -11862,9 +11940,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'vetro',
                         project.configInfissi?.vetro || '',
-                        (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri) 
-                            ? FINSTRAL_OPZIONI.vetri.map(v => v.nome)
-                            : ['Doppio 33.1v-18-33.1v', 'Triplo 33.1v-14-4-14-33.1v', 'Doppio satinato', 'Triplo satinato'],
+                        ['doppio', 'doppio-sat', 'triplo', 'triplo-sat'],
                         project.id,
                         null,
                         'infisso',
@@ -11875,9 +11951,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'maniglia',
                         project.configInfissi?.maniglia || '',
-                        (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.maniglie) 
-                            ? FINSTRAL_OPZIONI.maniglie.map(m => m.codice + ' - ' + m.nome)
-                            : ['7120 - Maniglia standard', '7121 - Maniglia con chiave', '7125 - Maniglia design'],
+                        ['601 - STANDARD', '712 - A PRESSIONE', '773 - DOPPIA ANTA/RIBALTA', '772 - DOPPIA ANTA'],
                         project.id,
                         null,
                         'infisso',
@@ -11888,9 +11962,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'coloreManiglia',
                         project.configInfissi?.coloreManiglia || '',
-                        (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.coloriManiglia) 
-                            ? FINSTRAL_OPZIONI.coloriManiglia.map(c => c.codice + ' - ' + c.nome)
-                            : ['79 - Argento', '01 - Bianco', '80 - Nero', 'F9 - Acciaio inox'],
+                        ['01 - BIANCO', '07 - PERLA', '56 - NEUTRO ANODIZZATO', '74 - BRONZO', '40 - OTTONE LUCIDO', '79 - TITANIO', 'M01 - BIANCO', 'M03 - NERO', 'M07 - BIANCO CREMA'],
                         project.id,
                         null,
                         'infisso',
@@ -17637,9 +17709,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'tipoAnta',
                                 inf.tipoAnta || '',
-                                (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.tipiAnta) 
-                                    ? FINSTRAL_OPZIONI.tipiAnta.map(a => a.nome)
-                                    : ['Classic-line', 'Step-line', 'Slim-line', 'Nova-line', 'Nova-line Plus'],
+                                ['Classic-line', 'Slim-line', 'Slim-line Cristal', 'Slim-line Twin', 'Slim-line Cristal Twin', 'Step-line', 'Step-line Door', 'Nova-line', 'Nova-line Plus', 'Nova-line Twin', 'Nova-line Cristal Twin'],
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17650,7 +17720,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraInt',
                                 inf.finituraInt || '',
-                                ['pvc', 'alluminio'],
+                                ['pvc', 'legno', 'alluminio', 'ceramica'],
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17661,7 +17731,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraEst',
                                 inf.finituraEst || '',
-                                ['pvc', 'alluminio'],
+                                ['pvc', 'legno', 'alluminio', 'ceramica'],
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17719,9 +17789,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'vetro',
                                 inf.vetro || '',
-                                (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri) 
-                                    ? FINSTRAL_OPZIONI.vetri.map(v => v.nome)
-                                    : ['Doppio 33.1v-18-33.1v', 'Triplo 33.1v-14-4-14-33.1v', 'Doppio satinato', 'Triplo satinato'],
+                                ['doppio', 'doppio-sat', 'triplo', 'triplo-sat'],
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17733,9 +17801,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'maniglia',
                                 inf.maniglia || '',
-                                (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.maniglie) 
-                                    ? FINSTRAL_OPZIONI.maniglie.map(m => m.codice + ' - ' + m.nome)
-                                    : ['7120 - Maniglia standard', '7121 - Maniglia con chiave', '7125 - Maniglia design'],
+                                ['601 - STANDARD', '712 - A PRESSIONE', '773 - DOPPIA ANTA/RIBALTA', '772 - DOPPIA ANTA'],
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17747,9 +17813,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'coloreManiglia',
                                 inf.coloreManiglia || '',
-                                (typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.coloriManiglia) 
-                                    ? FINSTRAL_OPZIONI.coloriManiglia.map(c => c.codice + ' - ' + c.nome)
-                                    : ['79 - Argento', '01 - Bianco', '80 - Nero', 'F9 - Acciaio inox'],
+                                ['01 - BIANCO', '07 - PERLA', '56 - NEUTRO ANODIZZATO', '74 - BRONZO', '40 - OTTONE LUCIDO', '79 - TITANIO', 'M01 - BIANCO', 'M03 - NERO', 'M07 - BIANCO CREMA'],
                                 project.id,
                                 pos.id,
                                 'infisso',
