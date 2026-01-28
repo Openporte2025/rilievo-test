@@ -8,6 +8,9 @@
 // - Funzione normalizzaProdottoRilievo() per singoli prodotti
 // - Funzione normalizzaProgettoRilievo() per intero progetto
 // - Preparazione per stampa preventivo da App Rilievo
+// - 🆕 Tipo Apertura F/PF in Misure Principali
+// - 🆕 Funzione updateTipoApertura() per propagare ai prodotti
+// - 🆕 Dropdown Vetri da FINSTRAL_OPZIONI.vetri (database centralizzato)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ⚡ FASE 024B: Sistema aggiornamenti parziali DOM (approccio cloud)
@@ -8173,6 +8176,7 @@ function addPosition(projectId) {
             ambiente: '',
             ambienteMode: 'select',  // 🆕 Traccia modalità input: 'select' o 'input'
             quantita: '1',
+            tipoApertura: 'F',  // 🆕 v5.77: Default Finestra (F) o Porta-finestra (PF)
             misure: {},
             // 📋 AUTO-SYNC: Inizializza TUTTI i rilievi con valori globali
             rilievo: {
@@ -11936,11 +11940,13 @@ function renderStep3ConfigInfissi(project) {
                         '8. Allarme'
                     )}
 
-                    <!-- 9. VETRO -->
+                    <!-- 9. VETRO - 🆕 v5.77: Da FINSTRAL_OPZIONI centralizzato -->
                     ${renderSelectWithCustom(
                         'vetro',
                         project.configInfissi?.vetro || '',
-                        ['doppio', 'doppio-sat', 'triplo', 'triplo-sat'],
+                        typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri 
+                            ? FINSTRAL_OPZIONI.vetri.map(v => v.nome) 
+                            : ['Doppio Base 28mm', 'Doppio Satinato', 'Triplo Base 46mm (Ug 0.5)', 'Triplo Satinato Bodysafe'],
                         project.id,
                         null,
                         'infisso',
@@ -13542,6 +13548,42 @@ function toggleMisuraNonServe(projectId, posId, campo) {
     if (pos.misureNonServe[campo]) {
         if (!pos.misure) pos.misure = {};
         pos.misure[campo] = '';
+    }
+    
+    saveState();
+    render();
+}
+
+/**
+ * 🆕 v5.77: Aggiorna tipo apertura F/PF per posizione
+ * Propaga automaticamente ai prodotti della posizione
+ */
+function updateTipoApertura(projectId, posId, tipoApertura) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const pos = project.positions?.find(p => p.id === posId);
+    if (!pos) return;
+    
+    // Salva a livello posizione
+    pos.tipoApertura = tipoApertura;
+    console.log(`🪟 Tipo apertura posizione ${pos.nome || posId}: ${tipoApertura}`);
+    
+    // Propaga ai prodotti esistenti
+    if (pos.infisso) {
+        pos.infisso.tipoInfissoAssociato = tipoApertura;
+    }
+    if (pos.persiana) {
+        pos.persiana.tipoInfissoAssociato = tipoApertura;
+    }
+    if (pos.zanzariera) {
+        pos.zanzariera.tipoInfissoAssociato = tipoApertura;
+    }
+    if (pos.tapparella) {
+        pos.tapparella.tipoInfissoAssociato = tipoApertura;
+    }
+    if (pos.cassonetto) {
+        pos.cassonetto.tipoInfissoAssociato = tipoApertura;
     }
     
     saveState();
@@ -17092,6 +17134,24 @@ function renderMisureTab(project, pos) {
             
             <div class="bg-gray-50 rounded-lg p-4">
                 <p class="text-sm font-bold text-gray-700 mb-2">Misure Principali (mm)</p>
+                
+                <!-- 🆕 v5.77: Tipo Apertura F/PF -->
+                <div class="mb-3 flex items-center gap-3">
+                    <label class="text-xs font-semibold text-gray-600">Tipo Apertura:</label>
+                    <div class="flex gap-2">
+                        <button type="button" 
+                                onclick="updateTipoApertura('${project.id}', '${pos.id}', 'F')"
+                                class="px-3 py-1 text-sm font-bold rounded-lg transition-all ${(pos.tipoApertura || 'F') === 'F' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-600 hover:bg-blue-100'}">
+                            🪟 F (Finestra)
+                        </button>
+                        <button type="button"
+                                onclick="updateTipoApertura('${project.id}', '${pos.id}', 'PF')"
+                                class="px-3 py-1 text-sm font-bold rounded-lg transition-all ${pos.tipoApertura === 'PF' ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 text-gray-600 hover:bg-green-100'}">
+                            🚪 PF (Porta-finestra)
+                        </button>
+                    </div>
+                </div>
+                
                 <p class="text-xs text-gray-500 mb-3">💡 Clicca <span class="text-red-500 font-bold">✗</span> se una misura non ti serve per questa posizione</p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="misure-grid-${pos.id}">
                     ${['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT', 'L4', 'H4'].map((field, index) => {
