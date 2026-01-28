@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <!--
-    Open Porte v5.76 - 🪟 INTEGRAZIONE FINSTRAL_OPZIONI CENTRALIZZATE
+    Open Porte v5.77 - 🔄 INTEGRAZIONE DATA_ACCESSOR
     ═══════════════════════════════════════════════════════════════
-    🆕 v5.76: Le opzioni Finstral ora vengono da finstral-opzioni.js
-    ⚠️ Modifica SOLO quel file per aggiungere/cambiare opzioni!
+    🆕 v5.77: Data Accessor per lettura dati uniforme qta/quantita
+    🆕 v5.77: Preparazione per stampa preventivo da cantiere
+    ⚠️ Modifica finstral-opzioni.js per aggiungere/cambiare opzioni!
 -->
 <html lang="it">
 <!-- 📦 Database Condiviso - UNICA FONTE VERITÀ -->
@@ -11,6 +12,10 @@
 <script src="https://openporte2025.github.io/shared-database/data-manager.js"></script>
 <!-- 🆕 v5.76: Opzioni Finstral centralizzate - MODIFICA SOLO QUESTO FILE! -->
 <script src="https://openporte2025.github.io/shared-database/database/finstral-opzioni.js"></script>
+<!-- 🆕 v5.77: Data Accessor per lettura dati uniforme -->
+<script src="https://openporte2025.github.io/shared-database/data-accessor.js"></script>
+<!-- 🆕 v5.77: Stampa Preventivo (per futura stampa da App) -->
+<script src="https://openporte2025.github.io/shared-database/preventivo-stampa.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -19,7 +24,7 @@
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <title>Open Porte v5.76 - FINSTRAL_OPZIONI Centralizzate</title>
+    <title>Open Porte v5.77 - DATA_ACCESSOR Integrato</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
