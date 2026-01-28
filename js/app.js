@@ -3,12 +3,15 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🆕 v5.78: TIPO APERTURA F/PF OBBLIGATORIO (28 GEN 2026)
+// 🆕 v5.78: TIPO APERTURA F/PF OBBLIGATORIO + JSON_MANAGER (28 GEN 2026)
 // - Tipo Apertura F/PF non ha più default - OBBLIGATORIO selezionare
 // - UI con bordo arancione e ⚠️ se non selezionato
 // - Validazione in validateMisure() - errore se mancante
 // - Aggiunto al calcolo completamento posizione (11 punti)
 // - Dropdown Vetri da FINSTRAL_OPZIONI.vetri (database centralizzato)
+// - 🆕 Export usa JSON_MANAGER.downloadJSON() quando disponibile
+// - 🆕 Import usa JSON_MANAGER.uploadJSON() quando disponibile
+// - Fallback legacy se JSON_MANAGER non caricato
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2564,17 +2567,30 @@ function importProjectsJSON() {
         showNotification('📥 Lettura file in corso...', 'info');
         
         try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            
-            // Valida struttura
-            if (!validateImportJSON(data)) {
-                showNotification('❌ File JSON non valido', 'error');
-                return;
+            // 🆕 v5.78: Usa JSON_MANAGER se disponibile
+            if (typeof JSON_MANAGER !== 'undefined') {
+                const project = await JSON_MANAGER.uploadJSON(file, { source: 'app-rilievo-import' });
+                
+                // Valida con JSON_MANAGER
+                const validation = JSON_MANAGER.validateJSON(project);
+                if (validation.warnings.length > 0) {
+                    console.warn('⚠️ Import warnings:', validation.warnings);
+                }
+                
+                // Processa import
+                await processImport(project);
+            } else {
+                // Fallback legacy
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!validateImportJSON(data)) {
+                    showNotification('❌ File JSON non valido', 'error');
+                    return;
+                }
+                
+                await processImport(data);
             }
-            
-            // Processa import
-            await processImport(data);
             
         } catch (error) {
             console.error('Errore import:', error);
@@ -23488,322 +23504,67 @@ window.exportCurrentProjectJSON = () => {
             return;
         }
         
-        const data = {
-            commessa_id: project.id,
-            versione: "1.0-FASE007",
-            data_rilievo: new Date().toISOString(),
-            // 🔍 RICERCA: Campo per ricerca facile nel JSON
-            nome_ricerca: `${project.client || ''} ${project.name || ''}`.trim(),
-            cliente: {
-                nome: project.client || '',
-                progetto: project.name || '',
-                piano: project.clientData?.piano || '',
-                indirizzo: project.clientData?.indirizzo || '',
-                telefono: project.clientData?.telefono || ''
-            },
-            note_progetto: project.clientData?.note || '',
-            // 🧱 CARATTERISTICHE MURO GLOBALI
-            caratteristiche_muro_globali: {
-                telaio_larghezza: project.caratteristicheMuro?.telaioLarghezza || 0,
-                telaio_altezza: project.caratteristicheMuro?.telaioAltezza || 0,
-                falso_esistente: project.caratteristicheMuro?.falsoEsistente || 'no',
-                spessore_falso: project.caratteristicheMuro?.spessoreFalso || 0,
-                distanza_falso_infisso: project.caratteristicheMuro?.distanzaFalsoInfisso || 0,
-                distanza_muro_infisso: project.caratteristicheMuro?.distanzaMuroInfisso || 0,
-                guida_tipo: project.caratteristicheMuro?.guidaTipo || '',
-                guida_larghezza: project.caratteristicheMuro?.guidaLarghezza || 0,
-                guida_altezza: project.caratteristicheMuro?.guidaAltezza || 0,
-                guida_profondita: project.caratteristicheMuro?.guidaProfondita || 0,
-                coprifilo_larghezza: project.caratteristicheMuro?.coprifiloLarghezza || 0,
-                prof_muro_int: project.caratteristicheMuro?.profMuroInt || 0,
-                prof_muro_est: project.caratteristicheMuro?.profMuroEst || 0,
-                battuta_superiore_tapparella: project.caratteristicheMuro?.battutaSuperioreTapparella || 0
-            },
-            posizioni: project.positions.map(pos => {
-                // 📊 TEMPLATE COMPLETO MISURE - Include tutti i campi anche se = 0
-                const misureComplete = {
-                    // Misure principali
-                    LVT: pos.misure?.LVT ?? 0,
-                    HVT: pos.misure?.HVT ?? 0,
-                    LF: pos.misure?.LF ?? 0,
-                    HF: pos.misure?.HF ?? 0,
-                    TMV: pos.misure?.TMV ?? 0,
-                    HMT: pos.misure?.HMT ?? 0,
-                    L4: pos.misure?.L4 ?? 0,
-                    H4: pos.misure?.H4 ?? 0,
-                    // Delta
-                    DeltaINT: pos.misure?.DeltaINT ?? 0,
-                    DeltaEST: pos.misure?.DeltaEST ?? 0,
-                    // Altezze
-                    HSoffitto: pos.misure?.HSoffitto ?? 0,
-                    HParapettoSoffitto: pos.misure?.HParapettoSoffitto ?? 0,
-                    HPavimentoParapetto: pos.misure?.HPavimentoParapetto ?? 0
-                };
-                
-                const posData = {
-                    id: pos.id,
-                    nome: pos.nome || pos.id,
-                    piano: pos.piano || '',
-                    stanza: pos.stanza || '',
-                    ambiente: pos.ambiente || '',
-                    quantita: pos.quantita || 1,
-                    misure: misureComplete
-                };
-                
-                // 🧱 CARATTERISTICHE MURO OVERRIDE (se presenti per questa posizione)
-                if (pos.overrideCaratteristiche && pos.caratteristicheMuroOverride) {
-                    posData.caratteristiche_muro_override = {
-                        telaio_larghezza: pos.caratteristicheMuroOverride.telaioLarghezza || 0,
-                        telaio_altezza: pos.caratteristicheMuroOverride.telaioAltezza || 0,
-                        falso_esistente: pos.caratteristicheMuroOverride.falsoEsistente || 'no',
-                        spessore_falso: pos.caratteristicheMuroOverride.spessoreFalso || 0,
-                        distanza_falso_infisso: pos.caratteristicheMuroOverride.distanzaFalsoInfisso || 0,
-                        distanza_muro_infisso: pos.caratteristicheMuroOverride.distanzaMuroInfisso || 0,
-                        guida_tipo: pos.caratteristicheMuroOverride.guidaTipo || '',
-                        guida_larghezza: pos.caratteristicheMuroOverride.guidaLarghezza || 0,
-                        guida_altezza: pos.caratteristicheMuroOverride.guidaAltezza || 0,
-                        guida_profondita: pos.caratteristicheMuroOverride.guidaProfondita || 0,
-                        coprifilo_larghezza: pos.caratteristicheMuroOverride.coprifiloLarghezza || 0,
-                        prof_muro_int: pos.caratteristicheMuroOverride.profMuroInt || 0,
-                        prof_muro_est: pos.caratteristicheMuroOverride.profMuroEst || 0,
-                        battuta_superiore_tapparella: pos.caratteristicheMuroOverride.battutaSuperioreTapparella || 0
-                    };
-                }
-                
-                // Aggiungi infisso se presente
-                if (pos.infisso) {
-                    posData.infisso = {
-                        quantita: pos.infisso.quantita || 1,
-                        tipo: pos.infisso.tipo || '',
-                        apertura: pos.infisso.apertura || '',
-                        azienda: pos.infisso.azienda || '',
-                        misure: misureComplete,  // 📊 Usa template completo
-                        brm: {  // 📊 Template completo BRM
-                            L: pos.infisso.brm?.L ?? null,
-                            H: pos.infisso.brm?.H ?? null,
-                            C: pos.infisso.brm?.C ?? null,
-                            B: pos.infisso.brm?.B ?? null
-                        },
-                        finitura_int: pos.infisso.finituraInt || '',
-                        finitura_est: pos.infisso.finituraEst || '',
-                        colore_int: pos.infisso.coloreInt || '',
-                        colore_est: pos.infisso.coloreEst || '',
-                        tipo_anta: pos.infisso.tipoAnta || '',
-                        telaio: pos.infisso.telaio || '',
-                        allarme: pos.infisso.allarme || '',
-                        vetro: pos.infisso.vetro || '',
-                        tagli_telaio: pos.infisso.tagliTelaio || '',
-                        // 🆕 v4.85: Usa codTagliValues invece di codTagli (rimosso)
-                        cod_tagli_values: pos.infisso.codTagliValues || [],
-                        maniglia: pos.infisso.maniglia || '',
-                        colore_maniglia: pos.infisso.coloreManiglia || '',
-                        // 🆕 v5.712: Campi Finstral
-                        codice_modello: pos.infisso.codiceModello || '',
-                        ferramenta1: pos.infisso.ferramenta1 || '',
-                        lato1: pos.infisso.lato1 || '',
-                        esecuzione1: pos.infisso.esecuzione1 || '',
-                        // 🆕 v5.734: Campi FIN-Slide HST
-                        finslide_telaio: pos.infisso.finslideTelaio || '',
-                        finslide_anta: pos.infisso.finslideAnta || '',
-                        finslide_ferramenta: pos.infisso.finslideFerramenta || '',
-                        finslide_maniglia: pos.infisso.finslideManiglia || '',
-                        finslide_colore_maniglia: pos.infisso.finslideColoreManiglia || '',
-                        finslide_vetro: pos.infisso.finslideVetro || ''
-                    };
-                }
-                
-                // Aggiungi persiana se presente
-                if (pos.persiana) {
-                    posData.persiana = {
-                        quantita: pos.persiana.quantita || 1,
-                        azienda: pos.persiana.azienda || 'P. Persiane',
-                        tipo: pos.persiana.tipo || '',
-                        apertura: pos.persiana.apertura || '',
-                        modello: pos.persiana.modello || '',
-                        fissaggio: pos.persiana.fissaggio || '',
-                        tipo_telaio: pos.persiana.tipoTelaio || '',
-                        colore_persiana: pos.persiana.colorePersiana || '',
-                        colore_telaio: pos.persiana.coloreTelaio || '',
-                        battuta: pos.persiana.battuta || '',
-                        brm: {  // 📊 Template completo BRM
-                            L: pos.persiana.brm?.L ?? null,
-                            H: pos.persiana.brm?.H ?? null,
-                            C: pos.persiana.brm?.C ?? null,
-                            B: pos.persiana.brm?.B ?? null
-                        },
-                        foto: pos.persiana.foto ? 'presente' : 'no'
-                    };
-                }
-                
-                // Aggiungi tapparella se presente
-                if (pos.tapparella) {
-                    posData.tapparella = {
-                        // Flag cosa serve
-                        serve_tapparella: pos.tapparella.serveTapparella ?? true,
-                        serve_motore: pos.tapparella.serveMotore ?? false,
-                        serve_accessori: pos.tapparella.serveAccessori ?? false,
-                        // Rilievo
-                        tapparella_esistente: pos.tapparella.tapparellaEsistente || 'manuale',
-                        // Dati tapparella
-                        quantita: pos.tapparella.qta || 1,
-                        azienda: pos.tapparella.azienda || '',
-                        modello: pos.tapparella.modello || '',
-                        colore: pos.tapparella.colore || '',
-                        guida: pos.tapparella.guida || '',
-                        colore_guida: pos.tapparella.coloreGuida || '',
-                        // Accessori da sostituire (se serve_accessori)
-                        accessori_da_sostituire: pos.tapparella.accessoriDaSostituire || {},
-                        // Motore
-                        motore_azienda: pos.tapparella.motoreAzienda || 'Somfy',
-                        motori: pos.tapparella.motori || [],
-                        // BRM
-                        brm: {
-                            L: pos.tapparella.BRM_L ?? null,
-                            H: pos.tapparella.BRM_H ?? null
-                        }
-                    };
-                }
-                
-                // Aggiungi zanzariera se presente
-                if (pos.zanzariera) {
-                    posData.zanzariera = {
-                        quantita: pos.zanzariera.quantita || 1,
-                        azienda: pos.zanzariera.azienda || '',
-                        tipo: pos.zanzariera.tipo || '',
-                        apertura: pos.zanzariera.apertura || '',
-                        tipo_infisso_associato: pos.zanzariera.tipoInfissoAssociato || '',
-                        colore_telaio: pos.zanzariera.coloreTelaio || '',
-                        tipo_rete: pos.zanzariera.tipoRete || '',
-                        brm: {  // 📊 Template completo BRM
-                            L: pos.zanzariera.brm?.L ?? null,
-                            H: pos.zanzariera.brm?.H ?? null,
-                            C: pos.zanzariera.brm?.C ?? null,
-                            B: pos.zanzariera.brm?.B ?? null
-                        }
-                    };
-                }
-                
-                // Aggiungi cassonetto se presente
-                if (pos.cassonetto) {
-                    posData.cassonetto = {
-                        quantita: pos.cassonetto.quantita || 1,
-                        tipo: pos.cassonetto.tipo || '',
-                        azienda: pos.cassonetto.azienda || '',
-                        colore: pos.cassonetto.colore || '',
-                        sovrappi_sostit: pos.cassonetto.sovrappiSostit || '',
-                        a_soffitto: pos.cassonetto.aSoffitto || false,
-                        isolamento_posaclima: pos.cassonetto.isolamentoPosaclima || false,
-                        // v5.36: Campi calcolo prezzi
-                        materiale_cass: pos.cassonetto.materialeCass || '',
-                        codice_cass: pos.cassonetto.codiceCass || '',
-                        gruppo_colore_cass: pos.cassonetto.gruppoColoreCass || '',
-                        codice_isolamento: pos.cassonetto.codiceIsolamento || '',
-                        misure: {  // 📊 Template completo con ?? operator
-                            LS: pos.cassonetto.LS ?? 0,
-                            SRSX: pos.cassonetto.SRSX ?? 0,
-                            ZSX: pos.cassonetto.ZSX ?? 0,
-                            SRDX: pos.cassonetto.SRDX ?? 0,
-                            ZDX: pos.cassonetto.ZDX ?? 0,
-                            HCASS: pos.cassonetto.HCASS ?? 0,
-                            B: pos.cassonetto.B ?? 0,
-                            C: pos.cassonetto.C ?? 0,
-                            BSuperiore: pos.cassonetto.BSuperiore ?? 0
-                        },
-                        brm: {  // 📊 Template completo BRM
-                            L: pos.cassonetto.brm?.L ?? null,
-                            H: pos.cassonetto.brm?.H ?? null,
-                            C: pos.cassonetto.brm?.C ?? null,
-                            B: pos.cassonetto.brm?.B ?? null
-                        }
-                    };
-                }
-                
-                // 📋 RILIEVO PREESISTENTE (se presente)
-                if (pos.rilievo) {
-                    posData.rilievo_preesistente = {
-                        da_togliere: pos.rilievo.togliere || false,
-                        smaltimento: pos.rilievo.smaltimento || false,
-                        materiale: pos.rilievo.materiale || '',
-                        coprifili_int: pos.rilievo.coprifiliInt || false,
-                        coprifili_est: pos.rilievo.coprifiliEst || false,
-                        note: pos.rilievo.note || ''
-                    };
-                }
-                
-                // 🚪 v5.12: INGRESSO (portoncino o blindata)
-                if (pos.ingresso) {
-                    posData.ingresso = {
-                        tipo: pos.ingresso.tipo || null
-                    };
-                    
-                    // Portoncino Finstral
-                    if (pos.ingresso.portoncino) {
-                        posData.ingresso.portoncino = pos.ingresso.portoncino;
-                    }
-                    
-                    // Blindata Oikos (struttura completa)
-                    if (pos.ingresso.blindata) {
-                        const bld = pos.ingresso.blindata;
-                        posData.ingresso.blindata = {
-                            azienda: bld.azienda || 'Oikos',
-                            LNP_L: bld.LNP_L || null,
-                            LNP_H: bld.LNP_H || null,
-                            luceCalcolata: bld.luceCalcolata || null,
-                            versione: bld.versione || '',
-                            tipoAnta: bld.tipoAnta || 'singola',
-                            sensoApertura: bld.sensoApertura || '',
-                            versoApertura: bld.versoApertura || '',
-                            controtelaio: bld.controtelaio || 'si',
-                            cilindro: bld.cilindro || 'BASIC',
-                            coloreTelaio: bld.coloreTelaio || 'RAL8022',
-                            acustica: bld.acustica || 'serie',
-                            termica: bld.termica || 'serie',
-                            kitAAV: bld.kitAAV || '',
-                            // Optional
-                            vetro: bld.vetro || { attivo: false },
-                            sopraluce: bld.sopraluce || { attivo: false },
-                            fiancoluce: bld.fiancoluce || { attivo: false },
-                            // Rivestimenti
-                            rivestimentoInt: bld.rivestimentoInt || {},
-                            rivestimentoEst: bld.rivestimentoEst || {},
-                            note: bld.note || ''
-                        };
-                    }
-                }
-                
-                return posData;
-            }),
-            totali: {
-                n_posizioni: project.positions.length,
-                n_infissi: project.positions.filter(p => p.infisso).length,
-                n_persiane: project.positions.filter(p => p.persiana).length,
-                n_tapparelle: project.positions.filter(p => p.tapparella).length,
-                n_zanzariere: project.positions.filter(p => p.zanzariera).length,
-                n_cassonetti: project.positions.filter(p => p.cassonetto).length,
-                n_ingressi: project.positions.filter(p => p.ingresso).length,
-                n_blindate: project.positions.filter(p => p.ingresso?.tipo === 'blindata').length,
-                n_portoncini: project.positions.filter(p => p.ingresso?.tipo === 'portoncino').length
-            }
-        };
-        
-        const jsonString = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `RILIEVO-${project.client || 'Cliente'}-${project.name || 'Progetto'}-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        showNotification(`✅ JSON esportato per Odoo!`, 'success');
+        // 🆕 v5.78: Usa JSON_MANAGER unificato
+        if (typeof JSON_MANAGER !== 'undefined') {
+            const result = JSON_MANAGER.downloadJSON(project, {
+                source: 'app-rilievo',
+                filename: `RILIEVO-${project.client || 'Cliente'}-${project.name || 'Progetto'}-${new Date().toISOString().split('T')[0]}.json`
+            });
+            showNotification(`✅ JSON esportato: ${result.filename}`, 'success');
+        } else {
+            // Fallback se JSON_MANAGER non caricato
+            console.warn('⚠️ JSON_MANAGER non disponibile, uso export legacy');
+            _exportProjectLegacy(project);
+        }
         
     } catch (error) {
         console.error('Errore export JSON:', error);
         showNotification(`Errore durante export: ${error.message}`, 'error');
     }
 };
+
+// 🔄 Export legacy (fallback se JSON_MANAGER non disponibile)
+function _exportProjectLegacy(project) {
+    const data = {
+        commessa_id: project.id,
+        versione: "1.0-LEGACY",
+        data_rilievo: new Date().toISOString(),
+        nome_ricerca: `${project.client || ''} ${project.name || ''}`.trim(),
+        cliente: {
+            nome: project.client || '',
+            progetto: project.name || '',
+            piano: project.clientData?.piano || '',
+            indirizzo: project.clientData?.indirizzo || '',
+            telefono: project.clientData?.telefono || ''
+        },
+        posizioni: project.positions.map(pos => ({
+            id: pos.id,
+            nome: pos.name || pos.nome || '',
+            ambiente: pos.ambiente || '',
+            piano: pos.piano || '',
+            tipoApertura: pos.tipoApertura || null,
+            misure: pos.misure || {},
+            infisso: pos.infisso || null,
+            persiana: pos.persiana || null,
+            tapparella: pos.tapparella || null,
+            zanzariera: pos.zanzariera || null,
+            cassonetto: pos.cassonetto || null
+        }))
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RILIEVO-${project.client || 'Cliente'}-${project.name || 'Progetto'}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification(`✅ JSON esportato (legacy)`, 'success');
+}
 
 // Funzione per stampare PDF del rilievo
 window.printCurrentProjectPDF = () => {
