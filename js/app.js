@@ -3,6 +3,34 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.81: INTEGRAZIONE UI_FORMS CENTRALIZZATO (29 GEN 2026)
+// - Form cliente usa UI_FORMS.renderFormCliente()
+// - Nuovi campi: Nome, Cognome, CF, Tel, Email, Indirizzo, Comune, Prov, CAP
+// - Zona climatica e Tipo detrazione per ENEA
+// - Callback updateClienteField() per cliente/immobile
+// - renderSelettoreMuro() usa JSON_MANAGER.CONFIG.OPZIONI
+// - Fallback legacy se UI_FORMS non caricato
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.80: OPZIONI MURO CENTRALIZZATE (28 GEN 2026)
+// - Nuovo file opzioni-muro.js con OPZIONI_MURO centralizzato
+// - Tipo Apertura e Posizione Telaio letti da OPZIONI_MURO
+// - Funzione renderSelettoreMuro() genera UI dinamicamente
+// - Validazione usa isValidOpzioneMuro() con fallback
+// - Riutilizzabile in: App Rilievo, Dashboard, App Posa
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.79: POSIZIONE TELAIO OBBLIGATORIA (28 GEN 2026)
+// - 🆕 Selettore "Filo Muro Int" / "Mazzetta" in Misure Principali
+// - Campo posizioneTelaio OBBLIGATORIO come tipoApertura
+// - Funzione updatePosizioneTelaio() per aggiornare
+// - Validazione in validateMisure() - errore se mancante
+// - Aggiunto al calcolo completamento (9 punti)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 🆕 v5.78: TIPO APERTURA F/PF OBBLIGATORIO + JSON_MANAGER (28 GEN 2026)
 // - Tipo Apertura F/PF non ha più default - OBBLIGATORIO selezionare
 // - UI con bordo arancione e ⚠️ se non selezionato
@@ -6803,12 +6831,40 @@ function validateMisure(project, pos) {
     const errors = [];
     const warnings = [];
     
-    // 🆕 v5.78: Tipo Apertura OBBLIGATORIO
-    if (!pos.tipoApertura || (pos.tipoApertura !== 'F' && pos.tipoApertura !== 'PF')) {
-        errors.push({
-            field: 'tipoApertura',
-            message: '⚠️ Seleziona Tipo Apertura: F (Finestra) o PF (Porta-finestra)'
-        });
+    // 🆕 v5.79: Tipo Apertura OBBLIGATORIO - usa OPZIONI_MURO
+    if (typeof isValidOpzioneMuro !== 'undefined') {
+        if (!isValidOpzioneMuro('tipoApertura', pos.tipoApertura)) {
+            errors.push({
+                field: 'tipoApertura',
+                message: '⚠️ Seleziona Tipo Apertura: F (Finestra) o PF (Porta-finestra)'
+            });
+        }
+    } else {
+        // Fallback se OPZIONI_MURO non caricato
+        if (!pos.tipoApertura || (pos.tipoApertura !== 'F' && pos.tipoApertura !== 'PF')) {
+            errors.push({
+                field: 'tipoApertura',
+                message: '⚠️ Seleziona Tipo Apertura: F (Finestra) o PF (Porta-finestra)'
+            });
+        }
+    }
+    
+    // 🆕 v5.79: Posizione Telaio OBBLIGATORIA - usa OPZIONI_MURO
+    if (typeof isValidOpzioneMuro !== 'undefined') {
+        if (!isValidOpzioneMuro('posizioneTelaio', pos.posizioneTelaio)) {
+            errors.push({
+                field: 'posizioneTelaio',
+                message: '⚠️ Seleziona Posizione Telaio: Filo Muro Int o Mazzetta'
+            });
+        }
+    } else {
+        // Fallback se OPZIONI_MURO non caricato
+        if (!pos.posizioneTelaio || (pos.posizioneTelaio !== 'filo_muro' && pos.posizioneTelaio !== 'mazzetta')) {
+            errors.push({
+                field: 'posizioneTelaio',
+                message: '⚠️ Seleziona Posizione Telaio: Filo Muro Int o Mazzetta'
+            });
+        }
     }
     
     const misure = pos.misure || {};
@@ -7181,25 +7237,40 @@ function calculatePositionCompleteness(pos, project) {
     // ========================================
     let step1Score = 0;
     
-    // Nome posizione (11 punti)
+    // Nome posizione (8 punti)
     if (pos.name && pos.name.trim() !== '') {
-        step1Score += 11;
+        step1Score += 8;
     } else {
         missing.push('Nome posizione');
     }
     
-    // Ambiente (11 punti)
+    // Ambiente (8 punti)
     if (pos.ambiente && pos.ambiente.trim() !== '') {
-        step1Score += 11;
+        step1Score += 8;
     } else {
         missing.push('Ambiente');
     }
     
-    // 🆕 v5.78: Tipo Apertura F/PF OBBLIGATORIO (11 punti)
-    if (pos.tipoApertura === 'F' || pos.tipoApertura === 'PF') {
-        step1Score += 11;
+    // 🆕 v5.79: Tipo Apertura F/PF OBBLIGATORIO (8 punti) - usa OPZIONI_MURO
+    const tipoAperturaValid = typeof isValidOpzioneMuro !== 'undefined' 
+        ? isValidOpzioneMuro('tipoApertura', pos.tipoApertura)
+        : (pos.tipoApertura === 'F' || pos.tipoApertura === 'PF');
+    
+    if (tipoAperturaValid) {
+        step1Score += 8;
     } else {
         missing.push('Tipo Apertura (F/PF)');
+    }
+    
+    // 🆕 v5.79: Posizione Telaio OBBLIGATORIA (9 punti) - usa OPZIONI_MURO
+    const posizioneTelaioValid = typeof isValidOpzioneMuro !== 'undefined'
+        ? isValidOpzioneMuro('posizioneTelaio', pos.posizioneTelaio)
+        : (pos.posizioneTelaio === 'filo_muro' || pos.posizioneTelaio === 'mazzetta');
+    
+    if (posizioneTelaioValid) {
+        step1Score += 9;
+    } else {
+        missing.push('Posizione Telaio (Filo Muro/Mazzetta)');
     }
     
     score += Math.round(step1Score);
@@ -8217,6 +8288,7 @@ function addPosition(projectId) {
             ambienteMode: 'select',  // 🆕 Traccia modalità input: 'select' o 'input'
             quantita: '1',
             tipoApertura: null,  // 🆕 v5.78: OBBLIGATORIO - nessun default, l'utente deve scegliere F o PF
+            posizioneTelaio: null,  // 🆕 v5.79: OBBLIGATORIO - filo_muro o mazzetta
             misure: {},
             // 📋 AUTO-SYNC: Inizializza TUTTI i rilievi con valori globali
             rilievo: {
@@ -10667,6 +10739,49 @@ function ProjectSetup() {
 }
 
 function renderStep1ClientData(project) {
+    // 🆕 v5.81: Usa UI_FORMS centralizzato
+    if (typeof UI_FORMS !== 'undefined') {
+        // Prepara dati cliente (compatibilità vecchio/nuovo formato)
+        const cliente = project.cliente || project.clientData || {};
+        // Separa nome/cognome se c'è solo "client"
+        if (!cliente.nome && !cliente.cognome && project.client) {
+            const parts = project.client.split(' ');
+            cliente.nome = parts[0] || '';
+            cliente.cognome = parts.slice(1).join(' ') || '';
+        }
+        
+        const immobile = project.immobile || {};
+        
+        return `
+            <div>
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="text-2xl">👤</span> Dati Cliente e Progetto
+                </h2>
+                
+                <!-- Nome Progetto -->
+                <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Nome Progetto</label>
+                    <input type="text" value="${project.name || ''}" 
+                           onchange="updateProject('${project.id}', 'name', this.value)"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                           placeholder="Es: Appartamento Via Roma">
+                </div>
+                
+                <!-- Form Cliente da UI_FORMS -->
+                ${UI_FORMS.renderFormCliente(cliente, immobile, {
+                    onChangeCallback: 'updateClienteField',
+                    idPrefix: 'rilievo-' + project.id
+                })}
+            </div>
+        `;
+    }
+    
+    // Fallback se UI_FORMS non caricato
+    return renderStep1ClientDataLegacy(project);
+}
+
+// 🔄 Fallback legacy se UI_FORMS non disponibile
+function renderStep1ClientDataLegacy(project) {
     return `
         <div>
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
@@ -10689,59 +10804,6 @@ function renderStep1ClientData(project) {
                            required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Piano</label>
-                    ${(() => {
-                        const pianoOptions = ['Piano Seminterrato', 'Piano Terra', 'Piano Rialzato', 'Primo Piano', 'Secondo Piano', 'Terzo Piano', 'Quarto Piano', 'Quinto Piano', 'Attico', 'Mansarda'];
-                        const currentPiano = project.clientData?.piano || '';
-                        const isCustom = currentPiano && !pianoOptions.includes(currentPiano);
-                        const selectId = `piano-select-${project.id}`;
-                        const inputId = `piano-input-${project.id}`;
-                        
-                        return `
-                            <select id="${selectId}" 
-                                    onchange="
-                                        const input = document.getElementById('${inputId}');
-                                        if (this.value === '__ALTRO__') {
-                                            input.style.display = 'block';
-                                            input.focus();
-                                        } else if (this.value) {
-                                            input.style.display = 'none';
-                                            input.value = '';
-                                            updateClientData('${project.id}', 'piano', this.value);
-                                        }
-                                    "
-                                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                                <option value="">Seleziona piano...</option>
-                                ${pianoOptions.map(opt => `
-                                    <option value="${opt}" ${currentPiano === opt ? 'selected' : ''}>${opt}</option>
-                                `).join('')}
-                                <option value="__ALTRO__" ${isCustom ? 'selected' : ''}>✏️ Altro e scrivo...</option>
-                            </select>
-                            <input type="text" 
-                                   id="${inputId}"
-                                   value="${isCustom ? currentPiano : ''}"
-                                   onchange="updateClientData('${project.id}', 'piano', this.value)"
-                                   placeholder="Inserisci piano personalizzato..."
-                                   style="display: ${isCustom ? 'block' : 'none'};"
-                                   class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 mt-2">
-                        `;
-                    })()}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Città</label>
-                    <input type="text" placeholder="Milano" 
-                           value="${project.clientData?.citta || ''}"
-                           oninput="updateClientData('${project.id}', 'citta', this.value)"
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Via/Indirizzo</label>
-                    <input type="text" placeholder="Via Roma, 1" 
-                           value="${project.clientData?.indirizzo || ''}"
-                           oninput="updateClientData('${project.id}', 'indirizzo', this.value)"
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                </div>
-                <div>
                     <label class="block text-sm font-medium mb-1">Telefono</label>
                     <input type="tel" placeholder="+39 333 1234567" 
                            value="${project.clientData?.telefono || ''}"
@@ -10755,41 +10817,17 @@ function renderStep1ClientData(project) {
                            oninput="updateClientData('${project.id}', 'email', this.value)"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Note</label>
-                    <input type="text" placeholder="Note aggiuntive..." 
-                           value="${project.clientData?.note || ''}"
-                           oninput="updateClientData('${project.id}', 'note', this.value)"
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-1">Indirizzo</label>
+                    <input type="text" placeholder="Via Roma, 1 - Milano" 
+                           value="${project.clientData?.indirizzo || ''}"
+                           oninput="updateClientData('${project.id}', 'indirizzo', this.value)"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
                 </div>
             </div>
-            
-            ${(() => {
-                // ✅ Suggerimento se mancano dati opzionali
-                const missingFields = [];
-                if (!project.clientData?.telefono) missingFields.push('Telefono');
-                if (!project.clientData?.email) missingFields.push('Email');
-                if (!project.clientData?.indirizzo && !project.clientData?.citta) missingFields.push('Indirizzo');
-                
-                if (missingFields.length > 0) {
-                    return `
-                        <div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
-                            <div style="display: flex; align-items: start; gap: 0.75rem;">
-                                <span style="font-size: 1.5rem;">💡</span>
-                                <div>
-                                    <div style="font-weight: 600; color: #92400e; margin-bottom: 0.25rem;">
-                                        Suggerimento
-                                    </div>
-                                    <div style="color: #78350f; font-size: 0.875rem;">
-                                        Compila <strong>${missingFields.join(', ')}</strong> per avere un report più completo
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                return '';
-            })()}
+            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-sm text-yellow-800">⚠️ Carica <strong>ui-forms.js</strong> per il form completo con tutti i campi</p>
+            </div>
         </div>
     `;
 }
@@ -13628,6 +13666,109 @@ function updateTipoApertura(projectId, posId, tipoApertura) {
     
     saveState();
     render();
+}
+
+/**
+ * 🆕 v5.79: Aggiorna posizione telaio (filo_muro/mazzetta)
+ */
+function updatePosizioneTelaio(projectId, posId, posizioneTelaio) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const pos = project.positions?.find(p => p.id === posId);
+    if (!pos) return;
+    
+    // Salva a livello posizione
+    pos.posizioneTelaio = posizioneTelaio;
+    console.log(`🧱 Posizione telaio ${pos.nome || posId}: ${posizioneTelaio}`);
+    
+    saveState();
+    render();
+}
+
+/**
+ * 🆕 v5.79: Render selettore da OPZIONI_MURO centralizzato
+ * Genera bottoni dinamicamente leggendo da OPZIONI_MURO
+ * @param {string} tipoOpzione - es. 'tipoApertura', 'posizioneTelaio'
+ * @param {string} valoreCorrente - valore attualmente selezionato
+ * @param {string} projectId - ID progetto
+ * @param {string} posId - ID posizione
+ * @param {string} label - Etichetta da mostrare
+ * @param {string} updateFunction - Nome funzione da chiamare onclick
+ */
+function renderSelettoreMuro(tipoOpzione, valoreCorrente, projectId, posId, label, updateFunction) {
+    // 🆕 v5.81: Prima prova UI_FORMS (preferito)
+    if (typeof UI_FORMS !== 'undefined') {
+        // Mappa nomi campi: posizioneTelaio → installazione
+        const mappaOpzioni = {
+            'posizioneTelaio': 'installazione'
+        };
+        const tipoMappato = mappaOpzioni[tipoOpzione] || tipoOpzione;
+        
+        const opzioni = UI_FORMS._getOpzioni(tipoMappato);
+        if (opzioni) {
+            return UI_FORMS._renderSelettoreToggle(tipoMappato, valoreCorrente, updateFunction, projectId, posId, label);
+        }
+    }
+    
+    // Fallback: prova JSON_MANAGER.CONFIG.OPZIONI
+    let opzioni = null;
+    const mappaOpzioni = { 'posizioneTelaio': 'installazione' };
+    const tipoMappato = mappaOpzioni[tipoOpzione] || tipoOpzione;
+    
+    if (typeof JSON_MANAGER !== 'undefined' && JSON_MANAGER.CONFIG?.OPZIONI?.[tipoMappato]) {
+        opzioni = JSON_MANAGER.CONFIG.OPZIONI[tipoMappato];
+    } else if (typeof OPZIONI_MURO !== 'undefined' && OPZIONI_MURO[tipoOpzione]) {
+        // Fallback vecchio OPZIONI_MURO
+        opzioni = OPZIONI_MURO[tipoOpzione];
+    }
+    
+    if (!opzioni) {
+        console.warn(`⚠️ Opzioni ${tipoOpzione} non disponibili`);
+        return `<div class="text-red-500 text-sm p-2">⚠️ Opzioni ${label} non caricate</div>`;
+    }
+    
+    const isSelected = opzioni.some(opt => opt.codice === valoreCorrente);
+    const borderClass = isSelected ? 'border-green-400' : 'border-orange-400';
+    const bgClass = isSelected ? 'bg-green-50' : 'bg-orange-50';
+    
+    // Colori per i bottoni
+    const colori = {
+        tipoApertura: { 0: 'blue', 1: 'green' },
+        installazione: { 0: 'indigo', 1: 'amber' },
+        posizioneTelaio: { 0: 'indigo', 1: 'amber' }
+    };
+    
+    const bottoniHTML = opzioni.map((opt, idx) => {
+        const colore = colori[tipoOpzione]?.[idx] || colori[tipoMappato]?.[idx] || 'gray';
+        const isAttivo = opt.codice === valoreCorrente;
+        const classeAttivo = isAttivo 
+            ? `bg-${colore}-600 text-white border-${colore}-600 shadow-lg` 
+            : `bg-white text-gray-600 border-gray-300 hover:border-${colore}-400 hover:bg-${colore}-50`;
+        
+        return `
+            <button type="button" 
+                    onclick="${updateFunction}('${projectId}', '${posId}', '${opt.codice}')"
+                    class="px-4 py-2 text-sm font-bold rounded-lg transition-all border-2 ${classeAttivo}">
+                ${opt.nome}
+            </button>
+        `;
+    }).join('');
+    
+    return `
+        <div class="mb-4 p-3 border-2 rounded-lg ${borderClass} ${bgClass}">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-bold text-gray-700">${label}:</label>
+                    ${!isSelected ? '<span class="text-orange-600 text-sm font-bold">⚠️ Obbligatorio</span>' : '<span class="text-green-600 text-sm">✓</span>'}
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    ${bottoniHTML}
+                </div>
+            </div>
+            ${!isSelected ? `<p class="text-xs text-orange-700 mt-2">👆 Seleziona ${label}</p>` : ''}
+        </div>
+    `;
 }
 
 function renderStep9Positions(project) {
@@ -17175,37 +17316,11 @@ function renderMisureTab(project, pos) {
             <div class="bg-gray-50 rounded-lg p-4">
                 <p class="text-sm font-bold text-gray-700 mb-2">Misure Principali (mm)</p>
                 
-                <!-- 🆕 v5.78: Tipo Apertura F/PF - OBBLIGATORIO -->
-                ${(() => {
-                    const tipoApertura = pos.tipoApertura || null;
-                    const isSelected = tipoApertura === 'F' || tipoApertura === 'PF';
-                    const borderClass = isSelected ? 'border-green-400' : 'border-orange-400';
-                    const bgClass = isSelected ? 'bg-green-50' : 'bg-orange-50';
-                    
-                    return `
-                    <div class="mb-4 p-3 border-2 rounded-lg ${borderClass} ${bgClass}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <label class="text-sm font-bold text-gray-700">Tipo Apertura:</label>
-                                ${!isSelected ? '<span class="text-orange-600 text-sm font-bold">⚠️ Obbligatorio</span>' : '<span class="text-green-600 text-sm">✓</span>'}
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" 
-                                        onclick="updateTipoApertura('${project.id}', '${pos.id}', 'F')"
-                                        class="px-4 py-2 text-sm font-bold rounded-lg transition-all border-2 ${tipoApertura === 'F' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:bg-blue-50'}">
-                                    🪟 F (Finestra)
-                                </button>
-                                <button type="button"
-                                        onclick="updateTipoApertura('${project.id}', '${pos.id}', 'PF')"
-                                        class="px-4 py-2 text-sm font-bold rounded-lg transition-all border-2 ${tipoApertura === 'PF' ? 'bg-green-600 text-white border-green-600 shadow-lg' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400 hover:bg-green-50'}">
-                                    🚪 PF (Porta-finestra)
-                                </button>
-                            </div>
-                        </div>
-                        ${!isSelected ? '<p class="text-xs text-orange-700 mt-2">👆 Seleziona se questa posizione è una Finestra o una Porta-finestra</p>' : ''}
-                    </div>
-                    `;
-                })()}
+                <!-- 🆕 v5.79: Tipo Apertura - Legge da OPZIONI_MURO centralizzato -->
+                ${renderSelettoreMuro('tipoApertura', pos.tipoApertura, project.id, pos.id, 'Tipo Apertura', 'updateTipoApertura')}
+                
+                <!-- 🆕 v5.79: Posizione Telaio - Legge da OPZIONI_MURO centralizzato -->
+                ${renderSelettoreMuro('posizioneTelaio', pos.posizioneTelaio, project.id, pos.id, 'Posizione Telaio', 'updatePosizioneTelaio')}
                 
                 <p class="text-xs text-gray-500 mb-3">💡 Clicca <span class="text-red-500 font-bold">✗</span> se una misura non ti serve per questa posizione</p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="misure-grid-${pos.id}">
@@ -21774,6 +21889,43 @@ window.updateClientData = (projectId, field, value) => {
         // 🆕 v4.76: Auto-save con debounce 500ms
         saveStateDebounced();
     }
+};
+
+/**
+ * 🆕 v5.81: Callback per UI_FORMS - Aggiorna campi cliente/immobile
+ * @param {string} field - Nome campo
+ * @param {string} value - Valore
+ * @param {string} sezione - 'cliente' o 'immobile' (default: 'cliente')
+ */
+window.updateClienteField = (field, value, sezione = 'cliente') => {
+    markUserTyping();
+    const project = state.projects.find(p => p.id === state.currentProject);
+    if (!project) return;
+    
+    if (sezione === 'immobile') {
+        // Aggiorna immobile
+        if (!project.immobile) project.immobile = {};
+        project.immobile[field] = value;
+        console.log(`🏠 Immobile.${field} = ${value}`);
+    } else {
+        // Aggiorna cliente
+        if (!project.cliente) project.cliente = {};
+        if (!project.clientData) project.clientData = {};
+        
+        project.cliente[field] = value;
+        project.clientData[field] = value; // Retrocompatibilità
+        
+        // Se aggiorno nome/cognome, aggiorna anche client
+        if (field === 'nome' || field === 'cognome') {
+            const nome = project.cliente.nome || '';
+            const cognome = project.cliente.cognome || '';
+            project.client = `${nome} ${cognome}`.trim();
+        }
+        
+        console.log(`👤 Cliente.${field} = ${value}`);
+    }
+    
+    saveStateDebounced();
 };
 
 window.updateProdotti = (projectId, product, checked) => {
