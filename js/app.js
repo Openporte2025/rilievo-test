@@ -17608,7 +17608,17 @@ function renderInfissiTab(project, pos) {
                 <div class="product-card">
                     <div class="flex justify-between items-start mb-3">
                         <h4 class="font-semibold text-blue-700 text-lg">🪟 Infisso</h4>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 items-center">
+                            <!-- 🆕 v5.82: Select quantità sempre visibile -->
+                            <div class="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                <span class="text-xs font-medium text-blue-700">Qta:</span>
+                                <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'qta', this.value)"
+                                        class="compact-input border rounded font-bold text-blue-700 w-14">
+                                    ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+                                        <option value="${n}" ${(inf.qta || '1') == n ? 'selected' : ''}>${n}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
                             <button onclick="ricaricaInfissoDaGlobali('${project.id}', '${pos.id}')"
                                     class="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700"
                                     title="Ricarica configurazione da Config Globali">
