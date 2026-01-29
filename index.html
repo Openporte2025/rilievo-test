@@ -1,21 +1,13 @@
 <!DOCTYPE html>
 <!--
-    Open Porte v5.77 - 🔄 INTEGRAZIONE DATA_ACCESSOR
+    Open Porte v5.81 - 🆕 INTEGRAZIONE UI_FORMS CENTRALIZZATO
     ═══════════════════════════════════════════════════════════════
-    🆕 v5.77: Data Accessor per lettura dati uniforme qta/quantita
-    🆕 v5.77: Preparazione per stampa preventivo da cantiere
-    ⚠️ Modifica finstral-opzioni.js per aggiungere/cambiare opzioni!
+    🆕 v5.81: Form cliente centralizzato con UI_FORMS
+    🆕 v5.81: Nuovi campi: CF, Indirizzo, Comune, Prov, CAP, Zona Climatica
+    🆕 v5.81: JSON_MANAGER v2.0.0 con struttura riorganizzata
+    ⚠️ Modifica shared-database per aggiungere/cambiare opzioni!
 -->
 <html lang="it">
-<!-- 📦 Database Condiviso - UNICA FONTE VERITÀ -->
-<script src="https://openporte2025.github.io/shared-database/opzioni-comuni.js"></script>
-<script src="https://openporte2025.github.io/shared-database/data-manager.js"></script>
-<!-- 🆕 v5.76: Opzioni Finstral centralizzate - MODIFICA SOLO QUESTO FILE! -->
-<script src="https://openporte2025.github.io/shared-database/database/finstral-opzioni.js"></script>
-<!-- 🆕 v5.77: Data Accessor per lettura dati uniforme -->
-<script src="https://openporte2025.github.io/shared-database/data-accessor.js"></script>
-<!-- 🆕 v5.77: Stampa Preventivo (per futura stampa da App) -->
-<script src="https://openporte2025.github.io/shared-database/preventivo-stampa.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -24,7 +16,7 @@
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <title>Open Porte v5.77 - DATA_ACCESSOR Integrato</title>
+    <title>Open Porte v5.81 - UI_FORMS Integrato</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,26 +40,45 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- MODULI JAVASCRIPT -->
+    <!-- 1. MODULI SHARED-DATABASE (caricati per primi) -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     
-    <!-- Configurazione e State -->
-    <script src="js/config.js"></script>
+    <!-- 🆕 v5.81: JSON Manager v2.0.0 - Gestione export/import + CONFIG centralizzato -->
+    <script src="https://openporte2025.github.io/shared-database/database/json-manager.js"></script>
     
-    <!-- Database -->
+    <!-- 🆕 v5.81: UI Forms v1.0.0 - Componenti UI centralizzati -->
+    <script src="https://openporte2025.github.io/shared-database/database/ui-forms.js"></script>
+    
+    <!-- Opzioni Finstral centralizzate -->
+    <script src="https://openporte2025.github.io/shared-database/database/finstral-opzioni.js"></script>
+    
+    <!-- Vetri Finstral 2025 -->
+    <script src="https://openporte2025.github.io/shared-database/database/finstral-vetri-2025.js"></script>
+    
+    <!-- Data Accessor per lettura dati uniforme -->
+    <script src="https://openporte2025.github.io/shared-database/database/data-accessor.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- 2. CONFIGURAZIONE LOCALE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    
+    <script src="js/config.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- 3. DATABASE LOCALI -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    
     <script src="js/database/porte.js"></script>
     <script src="js/database/gibus.js"></script>
     <script src="js/database/finstral.js"></script>
-    <script src="https://openporte2025.github.io/shared-database/database/finstral-opzioni.js"></script>
-    <script src="https://openporte2025.github.io/shared-database/database/finstral-vetri-2025.js"></script>
     <script src="js/database/persiane.js"></script>
     <script src="js/database/palagina.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- 4. APPLICAZIONE PRINCIPALE -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     
-    <!-- Applicazione principale -->
     <script src="js/app.js"></script>
-    
-    <!-- 🆕 v5.75: Integrazione DATA_MANAGER (DEVE essere DOPO app.js) -->
-    <script src="js/data-manager-integration.js"></script>
 
 </body>
 </html>
