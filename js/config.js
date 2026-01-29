@@ -28,8 +28,8 @@ let state = {
 };
 
 // ⚙️ VERSIONE APP - UNICO PUNTO DA MODIFICARE
-const APP_VERSION = '5.75';
-const APP_VERSION_NOTE = '📦 Integrazione opzioni-comuni.js - Costanti condivise';
+const APP_VERSION = '5.81';
+const APP_VERSION_NOTE = '🆕 UI_FORMS centralizzato + JSON_MANAGER v2.0.0';
 
 // 📦 GitHub Configuration
 // 📦 FASE 027K: Configurazione GitHub Sync
@@ -54,15 +54,15 @@ const CompletionSystem = {
         return !!(project.name && project.client);
     },
     checkClientData(project) {
-        const c = project.clientData || {};
-        return !!(c.nome || c.cognome || c.telefono);
+        const c = project.clientData || project.cliente || {};
+        return !!(c.nome || c.cognome || c.telefono || c.codiceFiscale);
     },
     checkProducts(project) {
         const p = project.prodotti || {};
         return Object.values(p).some(v => v === true);
     },
     checkCaratteristicheMuro(project) {
-        const m = project.caratteristicheMuro || {};
+        const m = project.caratteristicheMuro || project.muro || {};
         return Object.values(m).some(v => v && v !== '');
     },
     checkConfigInfissi(project) {
@@ -96,8 +96,9 @@ const CompletionSystem = {
             project.rilievoPersiane,
             project.rilievoTapparelle,
             project.rilievoZanzariere,
-            project.rilievoCassonetti
-        ].filter(r => r && (r.materiale || r.togliere || r.smaltimento));
+            project.rilievoCassonetti,
+            project.esistente  // 🆕 v5.81: Supporta nuova struttura
+        ].filter(r => r && (r.materiale || r.togliere || r.smaltimento || r.infisso));
         return rilievi.length > 0;
     },
     checkBRMGlobali(project) {
@@ -110,6 +111,11 @@ const CompletionSystem = {
         ].filter(b => b && (b.misuraBaseL || b.misuraBaseH));
         return brm.length > 0;
     },
+    // 🆕 v5.81: Check immobile (zona climatica, detrazione)
+    checkImmobile(project) {
+        const imm = project.immobile || {};
+        return !!(imm.zonaClimatica || imm.tipoDetrazione || imm.comune);
+    },
     getOverallCompletion(project) {
         if (!project) return 0;
         const checks = [
@@ -117,6 +123,7 @@ const CompletionSystem = {
             this.checkClientData(project),
             this.checkProducts(project),
             this.checkCaratteristicheMuro(project),
+            this.checkImmobile(project),  // 🆕 v5.81
             this.checkConfigInfissi(project),
             this.checkConfigPersiane(project),
             this.checkConfigTapparelle(project),
