@@ -13643,25 +13643,15 @@ function updateTipoApertura(projectId, posId, tipoApertura) {
     const pos = project.positions?.find(p => p.id === posId);
     if (!pos) return;
     
-    // Salva a livello posizione
-    pos.tipoApertura = tipoApertura;
-    console.log(`🪟 Tipo apertura posizione ${pos.nome || posId}: ${tipoApertura}`);
-    
-    // Propaga ai prodotti esistenti
-    if (pos.infisso) {
-        pos.infisso.tipoInfissoAssociato = tipoApertura;
-    }
-    if (pos.persiana) {
-        pos.persiana.tipoInfissoAssociato = tipoApertura;
-    }
-    if (pos.zanzariera) {
-        pos.zanzariera.tipoInfissoAssociato = tipoApertura;
-    }
-    if (pos.tapparella) {
-        pos.tapparella.tipoInfissoAssociato = tipoApertura;
-    }
-    if (pos.cassonetto) {
-        pos.cassonetto.tipoInfissoAssociato = tipoApertura;
+    // 🆕 v5.81: Usa POSITION_UTILS centralizzato
+    if (typeof POSITION_UTILS !== 'undefined') {
+        POSITION_UTILS.updateTipoApertura(pos, tipoApertura);
+    } else {
+        // Fallback locale
+        pos.tipoApertura = tipoApertura;
+        ['infisso', 'persiana', 'zanzariera', 'tapparella', 'cassonetto'].forEach(prod => {
+            if (pos[prod]) pos[prod].tipoInfissoAssociato = tipoApertura;
+        });
     }
     
     saveState();
@@ -13678,9 +13668,14 @@ function updatePosizioneTelaio(projectId, posId, posizioneTelaio) {
     const pos = project.positions?.find(p => p.id === posId);
     if (!pos) return;
     
-    // Salva a livello posizione
-    pos.posizioneTelaio = posizioneTelaio;
-    console.log(`🧱 Posizione telaio ${pos.nome || posId}: ${posizioneTelaio}`);
+    // 🆕 v5.81: Usa POSITION_UTILS centralizzato
+    if (typeof POSITION_UTILS !== 'undefined') {
+        POSITION_UTILS.updateInstallazione(pos, posizioneTelaio);
+    } else {
+        // Fallback locale
+        pos.posizioneTelaio = posizioneTelaio;
+        pos.installazione = posizioneTelaio;
+    }
     
     saveState();
     render();
