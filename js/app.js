@@ -13643,16 +13643,14 @@ function updateTipoApertura(projectId, posId, tipoApertura) {
     const pos = project.positions?.find(p => p.id === posId);
     if (!pos) return;
     
-    // 🆕 v5.81: Usa POSITION_UTILS centralizzato
-    if (typeof POSITION_UTILS !== 'undefined') {
-        POSITION_UTILS.updateTipoApertura(pos, tipoApertura);
-    } else {
-        // Fallback locale
-        pos.tipoApertura = tipoApertura;
-        ['infisso', 'persiana', 'zanzariera', 'tapparella', 'cassonetto'].forEach(prod => {
-            if (pos[prod]) pos[prod].tipoInfissoAssociato = tipoApertura;
-        });
-    }
+    // Salva direttamente
+    pos.tipoApertura = tipoApertura;
+    console.log(`🪟 Tipo apertura aggiornato: ${tipoApertura} per posizione ${pos.nome || posId}`);
+    
+    // Propaga ai prodotti esistenti
+    ['infisso', 'persiana', 'zanzariera', 'tapparella', 'cassonetto'].forEach(prod => {
+        if (pos[prod]) pos[prod].tipoInfissoAssociato = tipoApertura;
+    });
     
     saveState();
     render();
@@ -13668,14 +13666,10 @@ function updatePosizioneTelaio(projectId, posId, posizioneTelaio) {
     const pos = project.positions?.find(p => p.id === posId);
     if (!pos) return;
     
-    // 🆕 v5.81: Usa POSITION_UTILS centralizzato
-    if (typeof POSITION_UTILS !== 'undefined') {
-        POSITION_UTILS.updateInstallazione(pos, posizioneTelaio);
-    } else {
-        // Fallback locale
-        pos.posizioneTelaio = posizioneTelaio;
-        pos.installazione = posizioneTelaio;
-    }
+    // Salva direttamente su ENTRAMBI i campi
+    pos.posizioneTelaio = posizioneTelaio;
+    pos.installazione = posizioneTelaio;
+    console.log(`🧱 Posizione telaio aggiornata: ${posizioneTelaio} per posizione ${pos.nome || posId}`);
     
     saveState();
     render();
