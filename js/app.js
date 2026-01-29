@@ -13686,6 +13686,10 @@ function updatePosizioneTelaio(projectId, posId, posizioneTelaio) {
     render();
 }
 
+// 🆕 v5.81: Esponi funzioni su window per onclick HTML
+window.updateTipoApertura = updateTipoApertura;
+window.updatePosizioneTelaio = updatePosizioneTelaio;
+
 /**
  * 🆕 v5.79: Render selettore da OPZIONI_MURO centralizzato
  * Genera bottoni dinamicamente leggendo da OPZIONI_MURO
