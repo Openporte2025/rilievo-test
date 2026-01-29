@@ -346,7 +346,7 @@ function loadState() {
         console.warn('⚠️ state.projects non era un array, lo reimposto');
         state.projects = [];
     }
-    
+    window._appState = state;
     // ❌ DISABILITATO: Non creare progetto demo automaticamente
     // Se non ci sono progetti, mostra schermata vuota con istruzioni
     if (state.projects.length === 0) {
