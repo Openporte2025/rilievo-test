@@ -10438,7 +10438,28 @@ function openBackupSettings() {
 function openStatistics() {
     const totalProjects = state.projects.length;
     const totalPositions = state.projects.reduce((sum, p) => sum + ((p.positions || []).length), 0);
-    showNotification(`📊 Statistiche: ${totalProjects} progetti, ${totalPositions} posizioni`, 'success');
+    
+    // 🆕 v5.81: Usa PRODUCT_COUNTER per conteggi accurati
+    let totali = { totaleInfissi: 0, totalePersiane: 0, totaleTapparelle: 0, totaleZanzariere: 0, totaleCassonetti: 0 };
+    
+    if (typeof PRODUCT_COUNTER !== 'undefined') {
+        state.projects.forEach(p => {
+            const stats = PRODUCT_COUNTER.countProject(p);
+            totali.totaleInfissi += stats.totaleInfissi;
+            totali.totalePersiane += stats.totalePersiane;
+            totali.totaleTapparelle += stats.totaleTapparelle;
+            totali.totaleZanzariere += stats.totaleZanzariere;
+            totali.totaleCassonetti += stats.totaleCassonetti;
+        });
+    }
+    
+    const msg = `📊 Statistiche:
+${totalProjects} progetti, ${totalPositions} posizioni
+🪟 ${totali.totaleInfissi} infissi | 🚪 ${totali.totalePersiane} persiane
+🎚️ ${totali.totaleTapparelle} tapparelle | 🦟 ${totali.totaleZanzariere} zanzariere
+📦 ${totali.totaleCassonetti} cassonetti`;
+    
+    showNotification(msg, 'success', 5000);
 }
 
 function openAppInfo() {
