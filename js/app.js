@@ -3,6 +3,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.82: RIMOSSO pos.quantita - USA SOLO prodotto.qta (29 GEN 2026)
+// - Eliminato input "Quantità" a livello posizione
+// - Conteggi usano solo infisso.qta, persiana.qta, etc.
+// - Allineato con PRODUCT_COUNTER centralizzato
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 🆕 v5.81: INTEGRAZIONE UI_FORMS CENTRALIZZATO (29 GEN 2026)
 // - Form cliente usa UI_FORMS.renderFormCliente()
 // - Nuovi campi: Nome, Cognome, CF, Tel, Email, Indirizzo, Comune, Prov, CAP
@@ -2702,7 +2709,7 @@ function importPosizioniJSON() {
                     name: pos.name || pos.nome || `Pos. ${numPrima + idx + 1}`,
                     piano: pos.piano || 'Piano Terra',
                     ambiente: pos.ambiente || pos.stanza || '',
-                    quantita: pos.quantita || 1,
+                    // 🆕 v5.82: RIMOSSO quantita - usa solo prodotto.qta
                     misure: pos.misure || {},
                     
                     // Copia prodotti se presenti
@@ -2828,7 +2835,7 @@ async function processImportFile(file) {
                 name: pos.name || pos.nome || `Pos. ${numPrima + idx + 1}`,
                 piano: pos.piano || 'Piano Terra',
                 ambiente: pos.ambiente || pos.stanza || '',
-                quantita: pos.quantita || 1,
+                // 🆕 v5.82: RIMOSSO quantita - usa solo prodotto.qta
                 misure: pos.misure || {},
                 infisso: pos.infisso ? normalizzaInfisso(pos.infisso, project) : null,
                 persiana: pos.persiana ? normalizzaPersiana(pos.persiana, project) : null,
@@ -4495,7 +4502,7 @@ function normalizePositionsToMisure(positions) {
             name: pos.name,
             piano: pos.piano,
             ambiente: pos.ambiente,
-            quantita: parseInt(pos.quantita) || 1,
+            // 🆕 v5.82: RIMOSSO quantita - usa solo prodotto.qta
             misure: pos.misure || {},
             rilievo: pos.rilievo || {},
             note: pos.note || '',
@@ -5021,7 +5028,7 @@ async function uploadSingleProjectToGitHub(project) {
                 name: pos.name || '',
                 ambiente: pos.ambiente || '',
                 piano: pos.piano || '',
-                quantita: pos.quantita || '',
+                // 🆕 v5.82: RIMOSSO quantita - usa solo prodotto.qta
                 
                 // Caratteristiche muro posizione
                 caratteristicheMuroOverride: pos.caratteristicheMuroOverride || null,
@@ -14443,13 +14450,7 @@ function PositionDetail() {
                         <p class="text-xs text-red-600 mt-1">⚠️ Campo obbligatorio</p>
                     ` : ''}
                 </div>
-                <div class="section-card">
-                    <label class="text-xs font-medium">Quantità</label>
-                    <input type="number" min="1" value="${pos.quantita || '1'}"
-                           onchange="updatePosition('${project.id}', '${pos.id}', 'quantita', this.value)"
-                           placeholder="1"
-                           class="w-full compact-input border rounded mt-1 font-semibold text-purple-700">
-                </div>
+                <!-- 🆕 v5.82: RIMOSSO input pos.quantita - usa solo prodotto.qta -->
             </div>
             
             <!-- 🚪 v5.09: TIPO POSIZIONE (Finestra o Ingresso) -->
