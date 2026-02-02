@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <!--
-    Open Porte v5.83 - 🆕 INPUT NAVIGATION - Tastiera iPad Fluida
+    Open Porte v5.84 - 🆕 CENTRALIZZAZIONE OPZIONI PRODOTTI
     ═══════════════════════════════════════════════════════════════
+    🆕 v5.84: opzioni-prodotti.js - 36 dropdown centralizzati
+    🆕 v5.84: erreci-grate.js - Modulo grate di sicurezza
     🆕 v5.83: INPUT_NAVIGATION v1.1.0 - FIX touchstart iPad
     🆕 v5.83: Tocco su input non chiude più tastiera
     🆕 v5.83: Enter/Tab passa al campo successivo
@@ -17,7 +19,7 @@
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <title>Open Porte v5.83 - Tastiera iPad Fluida</title>
+    <title>Open Porte v5.84 - Opzioni Centralizzate</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -51,7 +53,7 @@
     <script src="https://openporte2025.github.io/shared-database/odoo-integration.js"></script>
     <script src="https://openporte2025.github.io/shared-database/odoo-autocomplete.js"></script>
     <script src="https://openporte2025.github.io/shared-database/odoo-project-form.js"></script>
-    <script src="shared-database/opzioni-prodotti.js"></script>
+    
     <!-- Data Manager -->
     <script src="https://openporte2025.github.io/shared-database/data-manager.js"></script>
     
@@ -66,6 +68,12 @@
     
     <!-- Vetri Finstral 2025 -->
     <script src="https://openporte2025.github.io/shared-database/database/finstral-vetri-2025.js"></script>
+    
+    <!-- 🆕 v5.84: Opzioni Prodotti centralizzate (DOPO finstral-opzioni per integrare vetri) -->
+    <script src="https://openporte2025.github.io/shared-database/opzioni-prodotti.js"></script>
+    
+    <!-- 🆕 v5.84: Grate di sicurezza Erreci (4 linee: Edilia2, Evoluta18, Sikura, Libera) -->
+    <script src="https://openporte2025.github.io/shared-database/erreci-grate.js"></script>
     
     <!-- Data Accessor per lettura dati uniforme -->
     <script src="https://openporte2025.github.io/shared-database/database/data-accessor.js"></script>
@@ -92,7 +100,8 @@
     <script src="js/config.js"></script>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- 3. DATABASE LOCALI -->
+    <!-- 3. DATABASE LOCALI                                                            -->
+    <!-- ⚠️ VERIFICARE: se sono duplicati di shared-database, eliminare e usare shared -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     
     <script src="js/database/porte.js"></script>
