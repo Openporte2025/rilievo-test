@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 v5.88: EXPORT CENTRALIZZATO posizioni + FIX flush dati cliente prima di Avanti + Finstral full shared (02 FEB 2026)
 // 🔧 v5.86: FIX colore grate config + rimosso rilievo preesistente (02 FEB 2026)
 // 🔒 v5.85: INTEGRAZIONE GRATE SICUREZZA ERRECI - 14 punti patch (02 FEB 2026)
 // 🆕 v5.84: CENTRALIZZAZIONE OPZIONI PRODOTTI - opzioni-prodotti.js (02 FEB 2026)
@@ -5060,93 +5061,11 @@ async function uploadSingleProjectToGitHub(project) {
             // Ora si configurano direttamente nella posizione (pos.ingresso)
             
             // POSIZIONI (con caratteristiche muro per posizione)
-            positions: (updatedProject.positions || []).map(pos => ({
-                id: pos.id,
-                name: pos.name || '',
-                ambiente: pos.ambiente || '',
-                piano: pos.piano || '',
-                // 🆕 v5.82: RIMOSSO quantita - usa solo prodotto.qta
-                
-                // Caratteristiche muro posizione
-                caratteristicheMuroOverride: pos.caratteristicheMuroOverride || null,
-                
-                // Misure
-                misure: pos.misure || {},
-                // 🆕 v5.745: Misure marcate come "non serve"
-                misureNonServe: pos.misureNonServe || {},
-                
-                // Rilievo
-                rilievo: pos.rilievo || {},
-                
-                // 🚪 v5.10: Tipo Posizione (finestra o ingresso)
-                tipoposizione: pos.tipoposizione || 'finestra',
-                
-                // Prodotti (solo per tipo 'finestra')
-                infisso: pos.infisso || null,
-                persiana: pos.persiana || null,
-                tapparella: pos.tapparella || null,
-                zanzariera: pos.zanzariera || null,
-                cassonetto: pos.cassonetto || null,
-                
-                // 🚪 v5.10: Ingresso (solo per tipo 'ingresso')
-                ingresso: pos.ingresso ? {
-                    tipo: pos.ingresso.tipo || null,  // 'portoncino' | 'blindata'
-                    portoncino: pos.ingresso.portoncino || null,
-                    blindata: pos.ingresso.blindata || null
-                } : null,
-                
-                // 🚪 v5.61: Porta Interna (solo per tipo 'porta_interna')
-                portaInterna: pos.portaInterna ? {
-                    azienda: pos.portaInterna.azienda || '',
-                    linea: pos.portaInterna.linea || '',
-                    collezione: pos.portaInterna.collezione || '',
-                    finitura: pos.portaInterna.finitura || '',
-                    telaio: pos.portaInterna.telaio || '',
-                    spessoreMuro: pos.portaInterna.spessoreMuro || '',
-                    quantita: pos.portaInterna.quantita || 1,
-                    larghezzaVano: pos.portaInterna.larghezzaVano || '',
-                    altezzaVano: pos.portaInterna.altezzaVano || '',
-                    apertura: pos.portaInterna.apertura || '',
-                    tipologia: pos.portaInterna.tipologia || '',
-                    battiscopa: pos.portaInterna.battiscopa || false,
-                    paretiCm: pos.portaInterna.paretiCm || [],
-                    battiscopaMt: pos.portaInterna.battiscopaMt || '',
-                    manigliaAzienda: pos.portaInterna.manigliaAzienda || '',
-                    manigliaModello: pos.portaInterna.manigliaModello || '',
-                    manigliaFinitura: pos.portaInterna.manigliaFinitura || '',
-                    note: pos.portaInterna.note || ''
-                } : null,
-                
-                // ☀️ v5.64: Tenda a Bracci (solo per tipo 'tenda_bracci')
-                tendaBracci: pos.tendaBracci ? {
-                    tende: pos.tendaBracci.tende || []  // Array max 2 tende
-                } : null,
-                
-                // 🪟 v5.64: Click Zip (collegato a infisso)
-                // 🪟 v5.746: Aggiunto serveClickZip e qta
-                clickZip: pos.clickZip ? {
-                    serveClickZip: pos.clickZip.serveClickZip !== false,  // 🆕 v5.746
-                    qta: pos.clickZip.qta || '1',  // 🆕 v5.746
-                    modello: pos.clickZip.modello || '',
-                    larghezza: pos.clickZip.larghezza || '',
-                    altezza: pos.clickZip.altezza || '',
-                    tessuto: pos.clickZip.tessuto || '',
-                    coloreStruttura: pos.clickZip.coloreStruttura || '',
-                    prezzoListino: pos.clickZip.prezzoListino || '',
-                    note: pos.clickZip.note || ''
-                } : null,
-                
-                // Prodotti assenti
-                prodottiAssenti: pos.prodottiAssenti || [],
-                
-                // 🎨 FASE DISEGNI: Disegni posizione
-                drawings: pos.drawings || [],
-                
-                // Note e foto
-                note: pos.note || '',
-                noteVisibilita: pos.noteVisibilita || [],
-                foto: pos.foto || []
-            })),
+            // 🔧 v5.88: EXPORT CENTRALIZZATO - usa export-utils.js (shared-database)
+            // Tutti i prodotti vengono esportati automaticamente
+            positions: typeof exportPositions !== 'undefined' 
+                ? exportPositions(updatedProject.positions)
+                : (updatedProject.positions || []).map(pos => JSON.parse(JSON.stringify(pos))),
             
             // 🎨 FASE DISEGNI: Disegni progetto
             drawings: updatedProject.drawings || {
@@ -6745,11 +6664,67 @@ function getPrevValidStep(currentStep, project) {
 window.goToNextStep = (projectId) => {
     const project = state.projects.find(p => p.id === projectId);
     if (project) {
+        // 🔧 v5.87: Flush valori DOM prima di cambiare step
+        // Senza questo, se l'utente digita e clicca Avanti senza blur, onchange non scatta
+        flushDOMValues(project);
+        
         state.setupStep = getNextValidStep(state.setupStep, project);
         saveState();
         render();
     }
 };
+
+// 🔧 v5.87: Forza salvataggio valori DOM prima di cambiare step
+function flushDOMValues(project) {
+    // 1. Forza blur sull'input attivo → scatta onchange sincrono
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) {
+        active.blur();
+    }
+    
+    // 2. Annulla debounce pendente e salva subito
+    if (typeof clientDataSaveTimer !== 'undefined') {
+        clearTimeout(clientDataSaveTimer);
+    }
+    
+    // 3. Step 1: backup diretto campi cliente dal DOM
+    if (state.setupStep === 1) {
+        if (!project.cliente) project.cliente = {};
+        if (!project.clientData) project.clientData = {};
+        
+        // Leggi tutti gli input con onchange che chiama updateClienteField
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+            const onch = el.getAttribute('onchange') || el.getAttribute('oninput') || '';
+            if (onch.includes('updateClienteField')) {
+                // Estrai field name: updateClienteField('nome', this.value) o simile
+                const match = onch.match(/updateClienteField\(['"]([^'"]+)['"]/);
+                if (match) {
+                    const field = match[1];
+                    const value = el.value || '';
+                    if (project.cliente[field] !== value && value) {
+                        project.cliente[field] = value;
+                        project.clientData[field] = value;
+                        console.log('🔧 flush cliente.' + field + ' = ' + value);
+                    }
+                }
+            }
+            // Nome progetto
+            if (onch.includes("updateProject") && onch.includes("'name'")) {
+                if (el.value && project.name !== el.value) {
+                    project.name = el.value;
+                    console.log('🔧 flush project.name = ' + el.value);
+                }
+            }
+        });
+        
+        // Aggiorna project.client composito
+        const nome = project.cliente.nome || '';
+        const cognome = project.cliente.cognome || '';
+        if (nome || cognome) {
+            project.client = (nome + ' ' + cognome).trim();
+        }
+    }
+}
 
 window.goToPrevStep = (projectId) => {
     const project = state.projects.find(p => p.id === projectId);
@@ -23852,19 +23827,10 @@ function _exportProjectLegacy(project) {
             indirizzo: project.clientData?.indirizzo || '',
             telefono: project.clientData?.telefono || ''
         },
-        posizioni: project.positions.map(pos => ({
-            id: pos.id,
-            nome: pos.name || pos.nome || '',
-            ambiente: pos.ambiente || '',
-            piano: pos.piano || '',
-            tipoApertura: pos.tipoApertura || null,
-            misure: pos.misure || {},
-            infisso: pos.infisso || null,
-            persiana: pos.persiana || null,
-            tapparella: pos.tapparella || null,
-            zanzariera: pos.zanzariera || null,
-            cassonetto: pos.cassonetto || null
-        }))
+        // 🔧 v5.88: EXPORT CENTRALIZZATO
+        posizioni: typeof exportPositions !== 'undefined'
+            ? exportPositions(project.positions)
+            : project.positions.map(pos => JSON.parse(JSON.stringify(pos)))
     };
     
     const jsonString = JSON.stringify(data, null, 2);
