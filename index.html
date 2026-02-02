@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <!--
-    Open Porte v5.84 - 🆕 CENTRALIZZAZIONE OPZIONI PRODOTTI
+    Open Porte v5.86 - 🪟 PERSIANE MODULE CENTRALIZZATO
     ═══════════════════════════════════════════════════════════════
+    🆕 v5.86: persiane-module.js - Modulo persiane centralizzato
+    🆕 v5.86: persiane-prezzi.js - PUNTO_PERSIANE_2025 in shared
+    🆕 v5.86: Rimosso persiane.js locale (ora tutto da shared)
+    🆕 v5.85: erreci-grate.js - Grate sicurezza Erreci
     🆕 v5.84: opzioni-prodotti.js - 36 dropdown centralizzati
-    🆕 v5.84: erreci-grate.js - Modulo grate di sicurezza
     🆕 v5.83: INPUT_NAVIGATION v1.1.0 - FIX touchstart iPad
-    🆕 v5.83: Tocco su input non chiude più tastiera
-    🆕 v5.83: Enter/Tab passa al campo successivo
     🆕 v5.82: Form cliente centralizzato con UI_FORMS
     ⚠️ Modifica shared-database per aggiungere/cambiare opzioni!
 -->
@@ -19,7 +20,7 @@
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <title>Open Porte v5.84 - Opzioni Centralizzate</title>
+    <title>Open Porte v5.86 - Persiane Module</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -68,15 +69,18 @@
     
     <!-- Vetri Finstral 2025 -->
     <script src="https://openporte2025.github.io/shared-database/database/finstral-vetri-2025.js"></script>
-
-    <script src="https://openporte2025.github.io/shared-database/erreci-grate.js"></script>
-<script src="https://openporte2025.github.io/shared-database/database/erreci.js"></script>
     
     <!-- 🆕 v5.84: Opzioni Prodotti centralizzate (DOPO finstral-opzioni per integrare vetri) -->
     <script src="https://openporte2025.github.io/shared-database/opzioni-prodotti.js"></script>
     
-    <!-- 🆕 v5.84: Grate di sicurezza Erreci (4 linee: Edilia2, Evoluta18, Sikura, Libera) -->
+    <!-- 🆕 v5.85: Grate di sicurezza Erreci (DB + Modulo) -->
+    <script src="https://openporte2025.github.io/shared-database/database/erreci.js"></script>
     <script src="https://openporte2025.github.io/shared-database/erreci-grate.js"></script>
+    
+    <!-- 🆕 v5.86: Persiane centralizzate (Colori/Cardini + Prezzi + Modulo) -->
+    <script src="https://openporte2025.github.io/shared-database/database/persiane.js"></script>
+    <script src="https://openporte2025.github.io/shared-database/database/persiane-prezzi.js"></script>
+    <script src="https://openporte2025.github.io/shared-database/persiane-module.js"></script>
     
     <!-- Data Accessor per lettura dati uniforme -->
     <script src="https://openporte2025.github.io/shared-database/database/data-accessor.js"></script>
@@ -110,7 +114,6 @@
     <script src="js/database/porte.js"></script>
     <script src="js/database/gibus.js"></script>
     <script src="js/database/finstral.js"></script>
-    <script src="js/database/persiane.js"></script>
     <script src="js/database/palagina.js"></script>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
