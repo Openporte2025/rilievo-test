@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🆕 v5.84: CENTRALIZZAZIONE OPZIONI PRODOTTI - opzioni-prodotti.js (02 FEB 2026)
 // 🔧 v5.83: FIX Dropdown Vetro posizione - allineato a Config Globale FINSTRAL_OPZIONI (02 FEB 2026)
 // 🆕 v5.82: RIMOSSO pos.quantita - USA SOLO prodotto.qta (29 GEN 2026)
 // - Eliminato input "Quantità" a livello posizione
@@ -11945,7 +11946,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'azienda',
                         project.configInfissi?.azienda || '',
-                        ['finstral', 'essepi', 'schuco', 'oknoplast', 'internorm'],
+                        OPZIONI_PRODOTTI.infissi.aziende,
                         project.id,
                         null,
                         'infisso',
@@ -11973,7 +11974,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'tipoAnta',
                         project.configInfissi?.tipoAnta || '',
-                        ['Classic-line', 'Slim-line', 'Slim-line Cristal', 'Slim-line Twin', 'Slim-line Cristal Twin', 'Step-line', 'Step-line Door', 'Nova-line', 'Nova-line Plus', 'Nova-line Twin', 'Nova-line Cristal Twin'],
+                        OPZIONI_PRODOTTI.infissi.tipiAnta,
                         project.id,
                         null,
                         'infisso',
@@ -11984,7 +11985,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraInt',
                         project.configInfissi?.finituraInt || '',
-                        ['pvc', 'legno', 'alluminio', 'ceramica'],
+                        OPZIONI_PRODOTTI.infissi.finiture,
                         project.id,
                         null,
                         'infisso',
@@ -11995,7 +11996,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraEst',
                         project.configInfissi?.finituraEst || '',
-                        ['pvc', 'legno', 'alluminio', 'ceramica'],
+                        OPZIONI_PRODOTTI.infissi.finiture,
                         project.id,
                         null,
                         'infisso',
@@ -12040,7 +12041,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'allarme',
                         project.configInfissi?.allarme || '',
-                        ['si', 'no'],
+                        OPZIONI_PRODOTTI.infissi.allarme,
                         project.id,
                         null,
                         'infisso',
@@ -12051,9 +12052,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'vetro',
                         project.configInfissi?.vetro || '',
-                        typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri 
-                            ? FINSTRAL_OPZIONI.vetri.map(v => v.nome) 
-                            : ['Doppio Base 28mm', 'Doppio Satinato', 'Triplo Base 46mm (Ug 0.5)', 'Triplo Satinato Bodysafe'],
+                        OPZIONI_PRODOTTI.infissi.vetri,
                         project.id,
                         null,
                         'infisso',
@@ -12064,7 +12063,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'maniglia',
                         project.configInfissi?.maniglia || '',
-                        ['601 - STANDARD', '712 - A PRESSIONE', '773 - DOPPIA ANTA/RIBALTA', '772 - DOPPIA ANTA'],
+                        OPZIONI_PRODOTTI.infissi.maniglie,
                         project.id,
                         null,
                         'infisso',
@@ -12075,7 +12074,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'coloreManiglia',
                         project.configInfissi?.coloreManiglia || '',
-                        ['01 - BIANCO', '07 - PERLA', '56 - NEUTRO ANODIZZATO', '74 - BRONZO', '40 - OTTONE LUCIDO', '79 - TITANIO', 'M01 - BIANCO', 'M03 - NERO', 'M07 - BIANCO CREMA'],
+                        OPZIONI_PRODOTTI.infissi.coloriManiglia,
                         project.id,
                         null,
                         'infisso',
@@ -12086,7 +12085,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'tagliTelaio',
                         project.configInfissi?.tagliTelaio || '',
-                        ['nessuno', 'sopra', 'sotto', 'sopra-sotto', 'dx', 'sx', 'dx-sx', '4-lati', 'sopra-laterali', 'sotto-laterali'],
+                        OPZIONI_PRODOTTI.infissi.tagliTelaio,
                         project.id,
                         null,
                         'infisso',
@@ -12324,7 +12323,7 @@ function renderStep4ConfigPersiane(project) {
                     ${renderSelectWithCustom(
                         'azienda',
                         project.configPersiane?.azienda || '',
-                        ['P. Persiane'],
+                        OPZIONI_PRODOTTI.persiane.aziende,
                         project.id,
                         null,
                         'persiana',
@@ -12335,7 +12334,7 @@ function renderStep4ConfigPersiane(project) {
                     ${renderSelectWithCustom(
                         'modello',
                         project.configPersiane?.modello || '',
-                        ['Angela', 'Giulia', 'Luna', 'Aurora', 'Alto Adige', 'Alto Adige (R)', 'Cortina', 'Cortina (R)', 'Oscura', 'Oscura (R)', 'Nerina', 'Nerina (R)', 'Scandola', 'Scandola (TT)', 'Scandola Duo', 'Scandola Duo (TT)', 'Oscura Duo', 'Oscura Duo (TT)'],
+                        OPZIONI_PRODOTTI.persiane.modelli,
                         project.id,
                         null,
                         'persiana',
@@ -12348,7 +12347,7 @@ function renderStep4ConfigPersiane(project) {
                     ${renderSelectWithCustom(
                         'fissaggio',
                         project.configPersiane?.fissaggio || '',
-                        ['muro', 'telaio'],
+                        OPZIONI_PRODOTTI.persiane.fissaggi,
                         project.id,
                         null,
                         'persiana',
@@ -12361,7 +12360,7 @@ function renderStep4ConfigPersiane(project) {
                         ${renderSelectWithCustom(
                             'tipoTelaio',
                             project.configPersiane?.tipoTelaio || '',
-                            ['TH10', 'TH40', 'TH41', 'TH45', 'TH46R', 'TH62', 'TH80', 'TH53'],
+                            OPZIONI_PRODOTTI.persiane.tipiTelaio,
                             project.id,
                             null,
                             'persiana',
@@ -12403,7 +12402,7 @@ function renderStep4ConfigPersiane(project) {
                     ${renderSelectWithCustom(
                         'battuta',
                         project.configPersiane?.battuta || '',
-                        ['3 LATI', '4 LATI', '2 LATI LATERALI'],
+                        OPZIONI_PRODOTTI.persiane.battute,
                         project.id,
                         null,
                         'persiana',
@@ -12475,7 +12474,7 @@ function renderStep5ConfigTapparelle(project) {
                     ${renderSelectWithCustom(
                         'azienda',
                         project.configTapparelle?.azienda || '',
-                        ['Plasticino', 'New solar', 'Estella'],
+                        OPZIONI_PRODOTTI.tapparelle.aziende,
                         project.id,
                         null,
                         'tapparella',
@@ -12608,7 +12607,7 @@ function renderStep6ConfigZanzariere(project) {
                     <div>
                         <label class="block text-sm font-medium mb-1">1. Azienda</label>
                         ${(() => {
-                            const options = ['Palagina', 'Finstral'];
+                            const options = OPZIONI_PRODOTTI.zanzariere.aziende;
                             const current = project.configZanzariere?.azienda || '';
                             const isCustom = current && !options.includes(current);
                             const selectId = `zanz-azienda-${project.id}`;
@@ -12885,7 +12884,7 @@ function renderStep7ConfigCassonetti(project) {
                     <div>
                         <label class="block text-sm font-medium mb-1">1. Azienda</label>
                         ${(() => {
-                            const options = ['Finstral', 'Magò', 'Alpac'];
+                            const options = OPZIONI_PRODOTTI.cassonetti.aziende;
                             const current = project.configCassonetti?.azienda || '';
                             const isCustom = current && !options.includes(current);
                             const selectId = `cass-azienda-${project.id}`;
@@ -17691,7 +17690,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'azienda',
                                 inf.azienda || '',
-                                ['finstral', 'Essepi'],
+                                OPZIONI_PRODOTTI.infissi.aziende,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17965,7 +17964,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'tipoAnta',
                                 inf.tipoAnta || '',
-                                ['Classic-line', 'Slim-line', 'Slim-line Cristal', 'Slim-line Twin', 'Slim-line Cristal Twin', 'Step-line', 'Step-line Door', 'Nova-line', 'Nova-line Plus', 'Nova-line Twin', 'Nova-line Cristal Twin'],
+                                OPZIONI_PRODOTTI.infissi.tipiAnta,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17976,7 +17975,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraInt',
                                 inf.finituraInt || '',
-                                ['pvc', 'legno', 'alluminio', 'ceramica'],
+                                OPZIONI_PRODOTTI.infissi.finiture,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -17987,7 +17986,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraEst',
                                 inf.finituraEst || '',
-                                ['pvc', 'legno', 'alluminio', 'ceramica'],
+                                OPZIONI_PRODOTTI.infissi.finiture,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18033,7 +18032,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'allarme',
                                 inf.allarme || '',
-                                ['si', 'no'],
+                                OPZIONI_PRODOTTI.infissi.allarme,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18042,13 +18041,11 @@ function renderInfissiTab(project, pos) {
 
                             <!-- VETRO -->
                             <!-- 🆕 v5.736: Nascosto per FIN-Slide (usa Vetro nel box specifico) -->
-                            <!-- 🔧 v5.83: Allineato a Config Globale - usa FINSTRAL_OPZIONI.vetri -->
+                            <!-- 🔧 v5.84: Centralizzato in OPZIONI_PRODOTTI -->
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'vetro',
                                 inf.vetro || '',
-                                typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri 
-                                    ? FINSTRAL_OPZIONI.vetri.map(v => v.nome) 
-                                    : ['Doppio Base 28mm', 'Doppio Satinato', 'Triplo Base 46mm (Ug 0.5)', 'Triplo Satinato Bodysafe'],
+                                OPZIONI_PRODOTTI.infissi.vetri,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18060,7 +18057,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'maniglia',
                                 inf.maniglia || '',
-                                ['601 - STANDARD', '712 - A PRESSIONE', '773 - DOPPIA ANTA/RIBALTA', '772 - DOPPIA ANTA'],
+                                OPZIONI_PRODOTTI.infissi.maniglie,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18072,7 +18069,7 @@ function renderInfissiTab(project, pos) {
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'coloreManiglia',
                                 inf.coloreManiglia || '',
-                                ['01 - BIANCO', '07 - PERLA', '56 - NEUTRO ANODIZZATO', '74 - BRONZO', '40 - OTTONE LUCIDO', '79 - TITANIO', 'M01 - BIANCO', 'M03 - NERO', 'M07 - BIANCO CREMA'],
+                                OPZIONI_PRODOTTI.infissi.coloriManiglia,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18083,7 +18080,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'tagliTelaio',
                                 inf.tagliTelaio || '',
-                                ['nessuno', 'sopra', 'sotto', 'sopra-sotto', 'dx', 'sx', 'dx-sx', '4-lati', 'sopra-laterali', 'sotto-laterali'],
+                                OPZIONI_PRODOTTI.infissi.tagliTelaio,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18500,7 +18497,7 @@ function renderPersianeTab(project, pos) {
                             <div>
                                 <label class="text-xs font-medium">Tipo <span class="text-red-600">*</span></label>
                                 ${(() => {
-                                    const options = ['F1', 'PF1', 'F2', 'PF2', 'F3', 'PF3', 'SCORREVOLE'];
+                                    const options = OPZIONI_PRODOTTI.persiane.tipi;
                                     const current = per.tipo || '';
                                     const isCustom = current && !options.includes(current);
                                     const selectId = `per-tipo-${pos.id}`;
@@ -18532,7 +18529,7 @@ function renderPersianeTab(project, pos) {
                             <div>
                                 <label class="text-xs font-medium">Apertura</label>
                                 ${(() => {
-                                    const options = ['SP SX', 'SP DX', 'LIB SX', 'LIB DX', 'SCORR SX', 'SCORR DX'];
+                                    const options = OPZIONI_PRODOTTI.persiane.aperture;
                                     const current = per.apertura || '';
                                     const isCustom = current && !options.includes(current);
                                     const selectId = `per-apertura-${pos.id}`;
@@ -18571,7 +18568,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'azienda',
                                 per.azienda || '',
-                                ['P. Persiane'],
+                                OPZIONI_PRODOTTI.persiane.aziende,
                                 project.id,
                                 pos.id,
                                 'persiana',
@@ -18582,7 +18579,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'modello',
                                 per.modello || '',
-                                ['Angela', 'Giulia', 'Luna', 'Aurora', 'Alto Adige', 'Alto Adige (R)', 'Cortina', 'Cortina (R)', 'Oscura', 'Oscura (R)', 'Nerina', 'Nerina (R)', 'Scandola', 'Scandola (TT)', 'Scandola Duo', 'Scandola Duo (TT)', 'Oscura Duo', 'Oscura Duo (TT)'],
+                                OPZIONI_PRODOTTI.persiane.modelli,
                                 project.id,
                                 pos.id,
                                 'persiana',
@@ -18593,7 +18590,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'fissaggio',
                                 per.fissaggio || '',
-                                ['muro', 'telaio'],
+                                OPZIONI_PRODOTTI.persiane.fissaggi,
                                 project.id,
                                 pos.id,
                                 'persiana',
@@ -18604,7 +18601,7 @@ function renderPersianeTab(project, pos) {
                             ${per.fissaggio === 'telaio' ? renderSelectWithCustom(
                                 'tipoTelaio',
                                 per.tipoTelaio || '',
-                                ['TH10', 'TH40', 'TH41', 'TH45', 'TH46R', 'TH62', 'TH80', 'TH53'],
+                                OPZIONI_PRODOTTI.persiane.tipiTelaio,
                                 project.id,
                                 pos.id,
                                 'persiana',
@@ -18637,7 +18634,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'battuta',
                                 per.battuta || '',
-                                ['3 LATI', '4 LATI', '2 LATI LATERALI'],
+                                OPZIONI_PRODOTTI.persiane.battute,
                                 project.id,
                                 pos.id,
                                 'persiana',
@@ -18975,7 +18972,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'azienda',
                                 tap.azienda || '',
-                                ['Plasticino', 'New Solar', 'Estella'],
+                                OPZIONI_PRODOTTI.tapparelle.aziende,
                                 project.id,
                                 pos.id,
                                 'tapparella',
@@ -19399,7 +19396,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'azienda',
                                 zan.azienda || '',
-                                ['Palagina', 'Finstral'],
+                                OPZIONI_PRODOTTI.zanzariere.aziende,
                                 project.id,
                                 pos.id,
                                 'zanzariera',
@@ -19778,7 +19775,7 @@ function renderPersianeTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'azienda',
                                 cas.azienda || '',
-                                ['Finstral', 'Magò', 'Alpac'],
+                                OPZIONI_PRODOTTI.cassonetti.aziende,
                                 project.id,
                                 pos.id,
                                 'cassonetto',
