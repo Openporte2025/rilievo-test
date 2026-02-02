@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 v5.86: FIX colore grate config + rimosso rilievo preesistente (02 FEB 2026)
 // 🔒 v5.85: INTEGRAZIONE GRATE SICUREZZA ERRECI - 14 punti patch (02 FEB 2026)
 // 🆕 v5.84: CENTRALIZZAZIONE OPZIONI PRODOTTI - opzioni-prodotti.js (02 FEB 2026)
 // 🔧 v5.83: FIX Dropdown Vetro posizione - allineato a Config Globale FINSTRAL_OPZIONI (02 FEB 2026)
@@ -1190,7 +1191,7 @@ window.handleSelectCustomChange = (fieldName, selectElement, projectId, posId, p
         // Determina se è rilievo globale (productType plurale)
         const isRilievoGlobale = (productType === 'infissi' || productType === 'persiane' || 
                                  productType === 'tapparelle' || productType === 'zanzariere' || 
-                                 productType === 'cassonetti');
+                                 productType === 'cassonetti' || productType === 'grate');
         
         // ⚡ Per rilievo globale SALVA IMMEDIATAMENTE senza delay
         if (isRilievoGlobale) {
@@ -1223,6 +1224,9 @@ window.handleSelectCustomChange = (fieldName, selectElement, projectId, posId, p
                     updateConfigZanzariere(projectId, fieldName, value);
                 } else if (productType === 'cassonetto') {
                     updateConfigCassonetti(projectId, fieldName, value);
+                } else if (productType === 'grata') {
+                    console.log('🔒 handleSelectCustomChange → updateConfigGrate:', fieldName, value);
+                    updateConfigGrate(projectId, fieldName, value);
                 }
             }
             
@@ -1281,6 +1285,7 @@ function renderSelectWithCustom(fieldName, currentValue, options, projectId, pos
                           productType === 'persiana' ? `updateConfigPersiane('${projectId}', '${fieldName}', this.value)` :
                           productType === 'tapparella' ? `updateConfigTapparelle('${projectId}', '${fieldName}', this.value)` :
                           productType === 'zanzariera' ? `updateConfigZanzariere('${projectId}', '${fieldName}', this.value)` :
+                          productType === 'grata' ? `updateConfigGrate('${projectId}', '${fieldName}', this.value)` :
                           `updateConfigCassonetti('${projectId}', '${fieldName}', this.value)`}"
             />
         </div>
@@ -1469,6 +1474,7 @@ function renderSelectColoreStandard(fieldName, currentValue, finituraValue, proj
                           productType === 'persiana' ? `updateConfigPersiane('${projectId}', '${fieldName}', this.value)` :
                           productType === 'tapparella' ? `updateConfigTapparelle('${projectId}', '${fieldName}', this.value)` :
                           productType === 'zanzariera' ? `updateConfigZanzariere('${projectId}', '${fieldName}', this.value)` :
+                          productType === 'grata' ? `updateConfigGrate('${projectId}', '${fieldName}', this.value)` :
                           `updateConfigCassonetti('${projectId}', '${fieldName}', this.value)`}"
             />
         </div>
@@ -8127,6 +8133,7 @@ function createProject(name, client) {
             codiceIsolamento: ''
         },
         configTapparelle: {},
+        configGrate: {},  // 🔒 v5.86
         configZanzariere: {
             azienda: '',
             modelloPF: '',
@@ -22324,6 +22331,7 @@ window.updateConfigCassonetti = (projectId, field, value) => {
 
 // 🔒 v5.85: Config Grate Erreci
 window.updateConfigGrate = (projectId, field, value) => {
+    console.log('🔒 updateConfigGrate CHIAMATA:', field, '=', value);
     const project = state.projects.find(p => p.id === projectId);
     if (project) {
         if (!project.configGrate) project.configGrate = {};
