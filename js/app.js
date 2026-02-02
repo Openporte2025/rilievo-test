@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🔒 v5.85: INTEGRAZIONE GRATE SICUREZZA ERRECI - 14 punti patch (02 FEB 2026)
 // 🆕 v5.84: CENTRALIZZAZIONE OPZIONI PRODOTTI - opzioni-prodotti.js (02 FEB 2026)
 // 🔧 v5.83: FIX Dropdown Vetro posizione - allineato a Config Globale FINSTRAL_OPZIONI (02 FEB 2026)
 // 🆕 v5.82: RIMOSSO pos.quantita - USA SOLO prodotto.qta (29 GEN 2026)
@@ -131,6 +132,7 @@ function normalizzaProgettoRilievo(project) {
             if (pos.portoncino) pos.portoncino = normalizzaProdottoRilievo(pos.portoncino);
             if (pos.portaInterna) pos.portaInterna = normalizzaProdottoRilievo(pos.portaInterna);
             if (pos.clickZip) pos.clickZip = normalizzaProdottoRilievo(pos.clickZip);
+            if (pos.grata) pos.grata = normalizzaProdottoRilievo(pos.grata);  // 🔒 v5.85
         });
     }
     
@@ -431,7 +433,7 @@ function cleanNegativeValues() {
     state.projects.forEach(project => {
         // Pulisci config globali
         const configs = ['brmConfigInfissi', 'brmConfigPersiane', 'brmConfigTapparelle', 
-                         'brmConfigZanzariere', 'brmConfigCassonetti'];
+                         'brmConfigZanzariere', 'brmConfigCassonetti', 'brmConfigGrate'];
         
         configs.forEach(configKey => {
             if (project[configKey]) {
@@ -2724,7 +2726,8 @@ function importPosizioniJSON() {
                     portoncino: pos.portoncino || null,
                     portaInterna: pos.portaInterna || null,
                     clickZip: pos.clickZip || null,
-                    tendaBracci: pos.tendaBracci || null
+                    tendaBracci: pos.tendaBracci || null,
+                    grata: pos.grata ? (typeof GRATE_MODULE !== 'undefined' ? GRATE_MODULE.normalizza(pos.grata, project) : pos.grata) : null  // 🔒 v5.85
                 };
                 
                 project.positions.push(newPosition);
@@ -2741,6 +2744,7 @@ function importPosizioniJSON() {
                 if (newPosition.portaInterna) project.prodotti.porteInterne = true;
                 if (newPosition.clickZip) project.prodotti.clickZip = true;
                 if (newPosition.tendaBracci) project.prodotti.tendeBracci = true;
+                if (newPosition.grata) project.prodotti.grate = true;  // 🔒 v5.85
             });
             
             // Salva e aggiorna
@@ -2848,7 +2852,8 @@ async function processImportFile(file) {
                 portoncino: pos.portoncino || null,
                 portaInterna: pos.portaInterna || null,
                 clickZip: pos.clickZip || null,
-                tendaBracci: pos.tendaBracci || null
+                tendaBracci: pos.tendaBracci || null,
+                grata: pos.grata ? (typeof GRATE_MODULE !== 'undefined' ? GRATE_MODULE.normalizza(pos.grata, project) : pos.grata) : null  // 🔒 v5.85
             };
             project.positions.push(newPosition);
             
@@ -2864,6 +2869,7 @@ async function processImportFile(file) {
             if (newPosition.portaInterna) project.prodotti.porteInterne = true;
             if (newPosition.clickZip) project.prodotti.clickZip = true;
             if (newPosition.tendaBracci) project.prodotti.tendeBracci = true;
+            if (newPosition.grata) project.prodotti.grate = true;  // 🔒 v5.85
         });
         
         // Log prodotti attivati
@@ -4739,7 +4745,8 @@ async function uploadSingleProjectToGitHub(project) {
                 portoncini: updatedProject.prodotti?.portoncini || false,
                 porteInterne: updatedProject.prodotti?.porteInterne || false,
                 clickZip: updatedProject.prodotti?.clickZip || false,  // 🪟 v5.64 GIBUS
-                tendeBracci: updatedProject.prodotti?.tendeBracci || false  // ☀️ v5.64 GIBUS
+                tendeBracci: updatedProject.prodotti?.tendeBracci || false,  // ☀️ v5.64 GIBUS
+                grate: updatedProject.prodotti?.grate || false  // 🔒 v5.85 ERRECI
             },
             
             // CARATTERISTICHE MURO
@@ -4974,6 +4981,28 @@ async function uploadSingleProjectToGitHub(project) {
                 ZSX: updatedProject.brmConfigCassonetti?.ZSX || '',
                 ZDX: updatedProject.brmConfigCassonetti?.ZDX || '',
                 note: updatedProject.brmConfigCassonetti?.note || ''
+            },
+            
+            // 🔒 v5.85: CONFIG GRATE ERRECI
+            configGrate: {
+                azienda: updatedProject.configGrate?.azienda || 'Erreci',
+                linea: updatedProject.configGrate?.linea || '',
+                modello: updatedProject.configGrate?.modello || '',
+                tipoApertura: updatedProject.configGrate?.tipoApertura || '',
+                colore: updatedProject.configGrate?.colore || '',
+                tipoTelaio: updatedProject.configGrate?.tipoTelaio || 'A',
+                snodo: updatedProject.configGrate?.snodo || '400',
+                altezzaCilindro: updatedProject.configGrate?.altezzaCilindro || '600',
+                accessori: updatedProject.configGrate?.accessori || []
+            },
+            brmConfigGrate: {
+                misuraBaseL: updatedProject.brmConfigGrate?.misuraBaseL || '',
+                operazioneL: updatedProject.brmConfigGrate?.operazioneL || '',
+                valoreL: updatedProject.brmConfigGrate?.valoreL || '',
+                misuraBaseH: updatedProject.brmConfigGrate?.misuraBaseH || '',
+                operazioneH: updatedProject.brmConfigGrate?.operazioneH || '',
+                valoreH: updatedProject.brmConfigGrate?.valoreH || '',
+                note: updatedProject.brmConfigGrate?.note || ''
             },
             
             // RILIEVO CASSONETTI - 🔄 v5.743: Sistema 3 stati
@@ -6763,7 +6792,8 @@ function handleConfigSelectWithCustom(projectId, configType, field, selectId, in
             'persiane': updateConfigPersiane,
             'tapparelle': updateConfigTapparelle,
             'zanzariere': updateConfigZanzariere,
-            'cassonetti': updateConfigCassonetti
+            'cassonetti': updateConfigCassonetti,
+            'grate': updateConfigGrate  // 🔒 v5.85
         };
         const updateFn = updateFnMap[configType];
         if (updateFn) {
@@ -7293,6 +7323,7 @@ function calculatePositionCompleteness(pos, project) {
         'tapparelle': 'tapparella',
         'zanzariere': 'zanzariera',
         'cassonetti': 'cassonetto',
+        'grate': 'grata',  // 🔒 v5.85
         'clickZip': 'clickZip',
         'tendeBracci': 'tendaBracci',
         'blindate': 'blindata',
@@ -7422,6 +7453,7 @@ function toggleProdottoAssente(projectId, posId, productType) {
         'tapparelle': 'tapparella',
         'zanzariere': 'zanzariera',
         'cassonetti': 'cassonetto',
+        'grate': 'grata',  // 🔒 v5.85
         'clickZip': 'clickZip',
         'tendeBracci': 'tendaBracci',
         'blindate': 'blindata',
@@ -8591,6 +8623,52 @@ function addZanzariera(projectId, posId) {
             render();
         }
     }
+}
+
+// 🔒 v5.85: Funzioni Grate di Sicurezza Erreci
+function addGrata(projectId, posId) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    const pos = project.positions.find(p => p.id === posId);
+    if (!pos) return;
+    if (typeof GRATE_MODULE !== 'undefined') {
+        pos.grata = GRATE_MODULE.createFromConfig(project, pos, calculateBRM, generateId);
+        console.log('🔒 Grata aggiunta:', pos.grata);
+        saveState();
+        render();
+    } else {
+        console.error('❌ GRATE_MODULE non caricato');
+    }
+}
+
+function ricaricaGrataDaGlobali(projectId, posId) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    const pos = project.positions.find(p => p.id === posId);
+    if (!pos || !pos.grata) return;
+    if (typeof GRATE_MODULE !== 'undefined') {
+        const nuova = GRATE_MODULE.createFromConfig(project, pos, calculateBRM, generateId);
+        nuova.id = pos.grata.id;
+        nuova.qta = pos.grata.qta;
+        nuova.note = pos.grata.note;
+        nuova.foto = pos.grata.foto;
+        pos.grata = nuova;
+        saveState();
+        render();
+    }
+}
+
+function toggleAccessorioGrata(projectId, posId, accessorioId) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    const pos = project.positions.find(p => p.id === posId);
+    if (!pos || !pos.grata) return;
+    if (!pos.grata.accessori) pos.grata.accessori = [];
+    const idx = pos.grata.accessori.indexOf(accessorioId);
+    if (idx >= 0) pos.grata.accessori.splice(idx, 1);
+    else pos.grata.accessori.push(accessorioId);
+    saveState();
+    render();
 }
 
 function addCassonetto(projectId, posId) {
@@ -10722,6 +10800,7 @@ function ProjectSetup() {
                     if (project.prodotti?.tapparelle) steps.push({num: 5, label: 'Config. Tapparelle'});
                     if (project.prodotti?.zanzariere) steps.push({num: 6, label: 'Config. Zanzariere'});
                     if (project.prodotti?.cassonetti) steps.push({num: 7, label: 'Config. Cassonetti'});
+                    if (project.prodotti?.grate) steps.push({num: 7.5, label: 'Config. Grate'});  // 🔒 v5.85
                     if (project.prodotti?.clickZip) steps.push({num: 8, label: 'Config. Click Zip'});  // 🪟 v5.64
                     // 🚪 v5.08: Blindate e Portoncini NON hanno più config globale
                     // Si configurano direttamente nella posizione
@@ -10748,6 +10827,7 @@ function ProjectSetup() {
                   state.setupStep === 5 ? renderStep5ConfigTapparelle(project) :
                   state.setupStep === 6 ? renderStep6ConfigZanzariere(project) :
                   state.setupStep === 7 ? renderStep7ConfigCassonetti(project) :
+                  state.setupStep === 7.5 ? renderStepConfigGrate(project) :
                   state.setupStep === 8 ? renderStep8ConfigClickZip(project) :
                   renderStep9Positions(project)}
                 
@@ -10972,6 +11052,19 @@ function renderStep2Products(project) {
                     <div>
                         <div class="font-semibold">Tende a Bracci</div>
                         <div class="text-xs opacity-75">GIBUS TXT, SEGNO...</div>
+                    </div>
+                </label>
+
+                <label class="product-pill ${project.prodotti?.grate ? 'selected bg-red-50 border-red-500 text-red-700' : 'border-gray-300'}">
+                    <input type="checkbox" 
+                           ${project.prodotti?.grate ? 'checked' : ''}
+                           onchange="updateProdotti('${project.id}', 'grate', this.checked)"
+                           onclick="event.stopPropagation()"
+                           class="sr-only">
+                    <span class="text-xl">🔒</span>
+                    <div>
+                        <div class="font-semibold">Grate Sicurezza</div>
+                        <div class="text-xs opacity-75">Erreci RC3</div>
                     </div>
                 </label>
             </div>
@@ -13348,6 +13441,14 @@ function renderCaratteristicheMuroOverride(project, pos) {
     `;
 }
 
+// 🔒 v5.85: Step 7.5 - Configurazione Grate Sicurezza Erreci
+function renderStepConfigGrate(project) {
+    if (!project.prodotti?.grate) {
+        return `<div class="text-center py-8"><p class="text-gray-500">Grate non selezionate. Salta questo step.</p></div>`;
+    }
+    return typeof GRATE_MODULE !== 'undefined' ? GRATE_MODULE.renderConfigGlobale(project) : '<p class="p-4 text-red-600">⚠️ Modulo grate non caricato</p>';
+}
+
 // 🪟 v5.64: Step 8 - Configurazione Click Zip GIBUS
 function renderStep8ConfigClickZip(project) {
     if (!project.prodotti?.clickZip) {
@@ -13457,7 +13558,8 @@ function getStatoProdotto(pos, prodottoKey, project) {
         'persiane': 'persiana', 
         'tapparelle': 'tapparella',
         'zanzariere': 'zanzariera',
-        'cassonetti': 'cassonetto'
+        'cassonetti': 'cassonetto',
+        'grate': 'grata'  // 🔒 v5.85
     };
     const singolare = mapProdotti[prodottoKey];
     if (!singolare) return null;
@@ -13520,6 +13622,7 @@ function renderRiepilogoVeloce(project) {
     if (project.prodotti?.tapparelle) prodottiAttivi.push({ key: 'tapparelle', icon: '🎚️', label: 'Tap' });
     if (project.prodotti?.zanzariere) prodottiAttivi.push({ key: 'zanzariere', icon: '🦟', label: 'Zan' });
     if (project.prodotti?.cassonetti) prodottiAttivi.push({ key: 'cassonetti', icon: '📦', label: 'Cas' });
+    if (project.prodotti?.grate) prodottiAttivi.push({ key: 'grate', icon: '🔒', label: 'Grate' });  // 🔒 v5.85
     
     return `
         <div class="mb-4">
@@ -14373,7 +14476,8 @@ function PositionDetail() {
                                 'persiane': { step: 4, label: '⚙️ Config Persiane', btnClass: 'bg-blue-600 hover:bg-blue-700' },
                                 'tapparelle': { step: 5, label: '⚙️ Config Tapparelle', btnClass: 'bg-indigo-600 hover:bg-indigo-700' },
                                 'zanzariere': { step: 6, label: '⚙️ Config Zanzariere', btnClass: 'bg-green-600 hover:bg-green-700' },
-                                'cassonetti': { step: 7, label: '⚙️ Config Cassonetti', btnClass: 'bg-orange-600 hover:bg-orange-700' }
+                                'cassonetti': { step: 7, label: '⚙️ Config Cassonetti', btnClass: 'bg-orange-600 hover:bg-orange-700' },
+                                'grate': { step: 7.5, label: '⚙️ Config Grate', btnClass: 'bg-red-600 hover:bg-red-700' }
                             };
                             const config = configMap[tab];
                             if (config && project.prodotti?.[tab]) {
@@ -14591,6 +14695,12 @@ function PositionDetail() {
                                 📦 Cassonetti
                             </button>
                         ` : ''}
+                        ${project.prodotti?.grate ? `
+                            <button onclick="setPositionTab('${pos.id}', 'grate')"
+                                    class="tab-btn ${pos.activeTab === 'grate' ? 'active' : ''}">
+                                🔒 Grate
+                            </button>
+                        ` : ''}
                         ${project.prodotti?.clickZip ? `
                             <button onclick="setPositionTab('${pos.id}', 'clickzip')"
                                     class="tab-btn ${pos.activeTab === 'clickzip' ? 'active' : ''}">
@@ -14651,6 +14761,7 @@ function renderPositionTabContent(project, pos) {
     if (tab === 'tapparelle') return renderTapparelleTab(project, pos);
     if (tab === 'zanzariere') return renderZanzariereTab(project, pos);
     if (tab === 'cassonetti') return renderCassonettiTab(project, pos);
+    if (tab === 'grate') return typeof GRATE_MODULE !== 'undefined' ? GRATE_MODULE.renderTab(project, pos) : '<p class="p-4 text-red-600">⚠️ Modulo grate non caricato (erreci-grate.js)</p>';  // 🔒 v5.85
     if (tab === 'clickzip') return renderClickZipTab(project, pos);  // 🪟 v5.64
     if (tab === 'ingresso') return renderIngressoTab(project, pos);  // 🚪 v5.09
     if (tab === 'porta_interna') return renderPortaInternaTab(project, pos);  // 🚪 v5.57
@@ -17230,7 +17341,8 @@ function renderMisureTab(project, pos) {
                     'portoncini': { singolare: 'portoncino', label: '🚪 Portoncino', icon: '🚪' },
                     'porteInterne': { singolare: 'portaInterna', label: '🚪 Porta Interna', icon: '🚪' },
                     'clickZip': { singolare: 'clickZip', label: '🪟 Click Zip', icon: '🪟' },
-                    'tendeBracci': { singolare: 'tendaBracci', label: '☀️ Tenda Bracci', icon: '☀️' }
+                    'tendeBracci': { singolare: 'tendaBracci', label: '☀️ Tenda Bracci', icon: '☀️' },
+                    'grate': { singolare: 'grata', label: '🔒 Grata', icon: '🔒' }
                 };
                 
                 const prodottiProgetto = [];
@@ -22206,6 +22318,23 @@ window.updateConfigCassonetti = (projectId, field, value) => {
         // 🆕 AUTO-SYNC: Aggiorna automaticamente le posizioni dove non è stato modificato manualmente
         syncConfigToPositions(project, 'cassonetto', field, value, oldValue);
         
+        saveState();
+    }
+};
+
+// 🔒 v5.85: Config Grate Erreci
+window.updateConfigGrate = (projectId, field, value) => {
+    const project = state.projects.find(p => p.id === projectId);
+    if (project) {
+        if (!project.configGrate) project.configGrate = {};
+        const oldValue = project.configGrate[field];
+        project.configGrate[field] = value;
+        // Reset modello e apertura se cambia linea
+        if (field === 'linea') {
+            project.configGrate.modello = '';
+            project.configGrate.tipoApertura = '';
+        }
+        syncConfigToPositions(project, 'grata', field, value, oldValue);
         saveState();
     }
 };
