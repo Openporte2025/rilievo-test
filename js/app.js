@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 v5.83: FIX Dropdown Vetro posizione - allineato a Config Globale FINSTRAL_OPZIONI (02 FEB 2026)
 // 🆕 v5.82: RIMOSSO pos.quantita - USA SOLO prodotto.qta (29 GEN 2026)
 // - Eliminato input "Quantità" a livello posizione
 // - Conteggi usano solo infisso.qta, persiana.qta, etc.
@@ -18041,10 +18042,13 @@ function renderInfissiTab(project, pos) {
 
                             <!-- VETRO -->
                             <!-- 🆕 v5.736: Nascosto per FIN-Slide (usa Vetro nel box specifico) -->
+                            <!-- 🔧 v5.83: Allineato a Config Globale - usa FINSTRAL_OPZIONI.vetri -->
                             ${!inf.codiceModello?.startsWith('FS') ? renderSelectWithCustom(
                                 'vetro',
                                 inf.vetro || '',
-                                ['doppio', 'doppio-sat', 'triplo', 'triplo-sat'],
+                                typeof FINSTRAL_OPZIONI !== 'undefined' && FINSTRAL_OPZIONI.vetri 
+                                    ? FINSTRAL_OPZIONI.vetri.map(v => v.nome) 
+                                    : ['Doppio Base 28mm', 'Doppio Satinato', 'Triplo Base 46mm (Ug 0.5)', 'Triplo Satinato Bodysafe'],
                                 project.id,
                                 pos.id,
                                 'infisso',
