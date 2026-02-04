@@ -3,11 +3,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 v5.89: FIX CRITICO 409 GITHUB - Anti-loop upload + existingIds + retry 3x (03 FEB 2026)
-// - Flag _isUploading blocca saveState() da schedulare nuovi upload durante upload
-// - Rimosso saveState() ridondante dentro uploadSingleProjectToGitHub
-// - FIX existingIds mancante in manualDownloadFromGitHub (auto-sync era rotto)
-// - Retry 409 migliorato: max 3 tentativi con delay progressivo
 // 🔧 v5.88: EXPORT CENTRALIZZATO posizioni + FIX flush dati cliente prima di Avanti + Finstral full shared (02 FEB 2026)
 // 🔧 v5.86: FIX colore grate config + rimosso rilievo preesistente (02 FEB 2026)
 // 🔒 v5.85: INTEGRAZIONE GRATE SICUREZZA ERRECI - 14 punti patch (02 FEB 2026)
@@ -886,7 +881,6 @@ function saveState() {
     
     // 📦 FASE 027K: Auto-backup su GitHub (debounced)
     // Solo se connesso, auto-backup abilitato e non già in sync
-    // 🔧 v5.89: Aggiunto check _isUploading per evitare loop upload → saveState → upload → 409
     if (state.github && state.github.connected && 
         state.github.autoBackupEnabled && 
         state.github.syncStatus !== 'syncing' &&
@@ -4004,7 +3998,7 @@ async function manualDownloadFromGitHub() {
         let updatedCount = 0;
         const messages = [];
         
-        // 🔧 v5.89: FIX CRITICO - existingIds non era definito → ReferenceError silenzioso
+        // v5.89: FIX - existingIds deve essere dichiarato prima del loop
         const existingIds = new Set(state.projects.map(p => p.id));
         
         for (const file of projectFiles) {
@@ -4159,8 +4153,14 @@ async function uploadToGitHub(projectId = null) {
     }
     
     try {
+        // v5.89: anti-rientro - impedisce upload concorrenti
+        if (window._isUploading) {
+            console.log('⏳ Upload già in corso, skip');
+            return false;
+        }
+        window._isUploading = true;
+        
         state.github.syncStatus = 'syncing';
-        window._isUploading = true;  // 🔧 v5.89: Blocca loop saveState → upload
         updateSyncStatusDisplay('syncing');
         
         // Determina quali progetti caricare
@@ -4234,15 +4234,15 @@ async function uploadToGitHub(projectId = null) {
         GITHUB_CONFIG.lastSync = new Date().toISOString();
         console.log(`✅ Upload completato: ${successCount}/${projectsToUpload.length} progetti`);
         
-        window._isUploading = false;  // 🔧 v5.89: Sblocca auto-sync
+        window._isUploading = false;
         return true;
         
     } catch (error) {
         console.error('❌ Errore upload GitHub:', error);
         state.github.syncStatus = 'error';
-        window._isUploading = false;  // 🔧 v5.89: Sblocca auto-sync anche su errore
         updateSyncStatusDisplay('error');
         showNotification('❌ Errore GitHub: ' + error.message, 'error');
+        window._isUploading = false;
         return false;
     }
 }
@@ -4710,8 +4710,7 @@ async function uploadSingleProjectToGitHub(project) {
         const numPositions = (project.positions && project.positions.length) || 0;
         console.log(`✅ Upload valido: ${project.name || project.id} (${numPositions} posizioni)`);
         
-        // 🔧 v5.89: Rimosso saveState() ridondante - updateProjectTimestamp lo chiama internamente
-        // Il flag _isUploading impedisce che saveState() scheduli un nuovo upload
+        // v5.89: rimosso saveState() ridondante - updateProjectTimestamp già lo chiama
         
         // 🆕 v4.61: Tracking modifiche prima dell'upload
         updateProjectTimestamp(
@@ -5181,16 +5180,17 @@ async function uploadSingleProjectToGitHub(project) {
             statusText: uploadResponse.statusText
         });
         
-        // 🔄 v5.89: Retry migliorato per errore 409 Conflict (max 3 tentativi con delay)
+        // 🔄 v5.89: Retry migliorato per errore 409 Conflict (3 tentativi, delay progressivo)
         if (uploadResponse.status === 409) {
-            console.warn('⚠️ Conflitto SHA - Riprovo con delay...');
+            console.warn('⚠️ Conflitto SHA - Avvio retry migliorato...');
             
+            let retrySuccess = false;
             for (let attempt = 1; attempt <= 3; attempt++) {
-                // Attendi prima di riprovare (500ms, 1000ms, 2000ms)
-                await new Promise(resolve => setTimeout(resolve, attempt * 500));
+                const delay = attempt * 500; // 500ms, 1000ms, 1500ms
+                console.log(`🔄 Retry ${attempt}/3 dopo ${delay}ms...`);
+                await new Promise(r => setTimeout(r, delay));
                 
                 try {
-                    // Rileggi SHA corrente
                     const retryCheckResponse = await fetch(checkUrl, {
                         headers: {
                             'Authorization': `token ${GITHUB_CONFIG.token}`,
@@ -5198,16 +5198,12 @@ async function uploadSingleProjectToGitHub(project) {
                         }
                     });
                     
-                    if (!retryCheckResponse.ok) {
-                        console.warn(`⚠️ Tentativo ${attempt}/3: impossibile ottenere SHA`);
-                        continue;
-                    }
+                    if (!retryCheckResponse.ok) continue;
                     
                     const currentFile = await retryCheckResponse.json();
                     const newSha = currentFile.sha;
-                    console.log(`🔄 Tentativo ${attempt}/3: Nuovo SHA:`, newSha.substring(0, 10) + '...');
+                    console.log(`🔄 Attempt ${attempt}: nuovo SHA:`, newSha.substring(0, 10) + '...');
                     
-                    // Riprova upload con nuovo SHA
                     const retryUploadResponse = await fetch(uploadUrl, {
                         method: 'PUT',
                         headers: {
@@ -5224,19 +5220,17 @@ async function uploadSingleProjectToGitHub(project) {
                     });
                     
                     if (retryUploadResponse.ok) {
-                        console.log(`✅ Progetto salvato con successo (tentativo ${attempt}): ${fileName}`);
-                        return true;
+                        console.log(`✅ Progetto salvato (retry ${attempt}): ${fileName}`);
+                        retrySuccess = true;
+                        break;
                     }
-                    
-                    console.warn(`⚠️ Tentativo ${attempt}/3 fallito:`, retryUploadResponse.status);
-                } catch (retryError) {
-                    console.warn(`⚠️ Tentativo ${attempt}/3 errore:`, retryError.message);
+                } catch (retryErr) {
+                    console.warn(`⚠️ Retry ${attempt} errore:`, retryErr.message);
                 }
             }
             
-            // Tutti i tentativi falliti
-            console.error('❌ Tutti i 3 tentativi falliti per conflitto 409');
-            throw new Error('Upload fallito dopo 3 tentativi (conflitto SHA persistente)');
+            if (retrySuccess) return true;
+            throw new Error('Retry 409 esaurito dopo 3 tentativi');
         }
         
         if (!uploadResponse.ok) {
@@ -9775,8 +9769,8 @@ function Header() {
             <div class="max-w-7xl mx-auto px-4 py-3">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3">
-                        <!-- Hamburger Menu Button -->
-                        <button onclick="toggleMainMenu()" class="p-2 hover:bg-gray-100 rounded-lg" title="Menu principale">
+                        <!-- Hamburger Menu Button - v5.90: context-aware -->
+                        <button onclick="${state.currentProject ? 'toggleProjectMenu()' : 'toggleMainMenu()'}" class="p-2 hover:bg-gray-100 rounded-lg" title="${state.currentProject ? 'Menu progetto' : 'Menu principale'}">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                             </svg>
@@ -24979,3 +24973,4 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
