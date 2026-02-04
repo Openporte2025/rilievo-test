@@ -3,6 +3,11 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 v5.89: FIX CRITICO 409 GITHUB - Anti-loop upload + existingIds + retry 3x (03 FEB 2026)
+// - Flag _isUploading blocca saveState() da schedulare nuovi upload durante upload
+// - Rimosso saveState() ridondante dentro uploadSingleProjectToGitHub
+// - FIX existingIds mancante in manualDownloadFromGitHub (auto-sync era rotto)
+// - Retry 409 migliorato: max 3 tentativi con delay progressivo
 // 🔧 v5.88: EXPORT CENTRALIZZATO posizioni + FIX flush dati cliente prima di Avanti + Finstral full shared (02 FEB 2026)
 // 🔧 v5.86: FIX colore grate config + rimosso rilievo preesistente (02 FEB 2026)
 // 🔒 v5.85: INTEGRAZIONE GRATE SICUREZZA ERRECI - 14 punti patch (02 FEB 2026)
@@ -881,9 +886,11 @@ function saveState() {
     
     // 📦 FASE 027K: Auto-backup su GitHub (debounced)
     // Solo se connesso, auto-backup abilitato e non già in sync
+    // 🔧 v5.89: Aggiunto check _isUploading per evitare loop upload → saveState → upload → 409
     if (state.github && state.github.connected && 
         state.github.autoBackupEnabled && 
-        state.github.syncStatus !== 'syncing') {
+        state.github.syncStatus !== 'syncing' &&
+        !window._isUploading) {
         
         try {
             // Debounce: aspetta 2 secondi di inattività prima di sync
@@ -3997,6 +4004,9 @@ async function manualDownloadFromGitHub() {
         let updatedCount = 0;
         const messages = [];
         
+        // 🔧 v5.89: FIX CRITICO - existingIds non era definito → ReferenceError silenzioso
+        const existingIds = new Set(state.projects.map(p => p.id));
+        
         for (const file of projectFiles) {
             try {
                 console.log('⬇️ Downloading:', file.name);
@@ -4150,6 +4160,7 @@ async function uploadToGitHub(projectId = null) {
     
     try {
         state.github.syncStatus = 'syncing';
+        window._isUploading = true;  // 🔧 v5.89: Blocca loop saveState → upload
         updateSyncStatusDisplay('syncing');
         
         // Determina quali progetti caricare
@@ -4223,11 +4234,13 @@ async function uploadToGitHub(projectId = null) {
         GITHUB_CONFIG.lastSync = new Date().toISOString();
         console.log(`✅ Upload completato: ${successCount}/${projectsToUpload.length} progetti`);
         
+        window._isUploading = false;  // 🔧 v5.89: Sblocca auto-sync
         return true;
         
     } catch (error) {
         console.error('❌ Errore upload GitHub:', error);
         state.github.syncStatus = 'error';
+        window._isUploading = false;  // 🔧 v5.89: Sblocca auto-sync anche su errore
         updateSyncStatusDisplay('error');
         showNotification('❌ Errore GitHub: ' + error.message, 'error');
         return false;
@@ -4697,10 +4710,8 @@ async function uploadSingleProjectToGitHub(project) {
         const numPositions = (project.positions && project.positions.length) || 0;
         console.log(`✅ Upload valido: ${project.name || project.id} (${numPositions} posizioni)`);
         
-        // 🚨 FIX v4.71: SALVA STATO PRIMA DI UPLOAD per assicurare dati freschi
-        console.log('💾 Salvataggio stato prima upload...');
-        saveState();
-        console.log('✅ Stato salvato, procedo con upload');
+        // 🔧 v5.89: Rimosso saveState() ridondante - updateProjectTimestamp lo chiama internamente
+        // Il flag _isUploading impedisce che saveState() scheduli un nuovo upload
         
         // 🆕 v4.61: Tracking modifiche prima dell'upload
         updateProjectTimestamp(
@@ -5170,50 +5181,62 @@ async function uploadSingleProjectToGitHub(project) {
             statusText: uploadResponse.statusText
         });
         
-        // 🔄 v5.62: Retry per errore 409 Conflict (SHA mismatch)
+        // 🔄 v5.89: Retry migliorato per errore 409 Conflict (max 3 tentativi con delay)
         if (uploadResponse.status === 409) {
-            console.warn('⚠️ Conflitto SHA - Rileggo SHA corrente e riprovo...');
+            console.warn('⚠️ Conflitto SHA - Riprovo con delay...');
             
-            // Rileggi SHA corrente
-            const retryCheckResponse = await fetch(checkUrl, {
-                headers: {
-                    'Authorization': `token ${GITHUB_CONFIG.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (retryCheckResponse.ok) {
-                const currentFile = await retryCheckResponse.json();
-                const newSha = currentFile.sha;
-                console.log('🔄 Nuovo SHA ottenuto:', newSha.substring(0, 10) + '...');
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                // Attendi prima di riprovare (500ms, 1000ms, 2000ms)
+                await new Promise(resolve => setTimeout(resolve, attempt * 500));
                 
-                // Riprova upload con nuovo SHA
-                const retryUploadResponse = await fetch(uploadUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Update ${fileName} (retry after conflict)`,
-                        content: base64Content,
-                        branch: GITHUB_CONFIG.branch,
-                        sha: newSha
-                    })
-                });
-                
-                if (retryUploadResponse.ok) {
-                    console.log(`✅ Progetto salvato con successo (dopo retry): ${fileName}`);
-                    return true;
-                } else {
-                    const retryError = await retryUploadResponse.json();
-                    console.error('❌ Retry fallito:', retryError);
-                    throw new Error(retryError.message || 'Retry fallito');
+                try {
+                    // Rileggi SHA corrente
+                    const retryCheckResponse = await fetch(checkUrl, {
+                        headers: {
+                            'Authorization': `token ${GITHUB_CONFIG.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (!retryCheckResponse.ok) {
+                        console.warn(`⚠️ Tentativo ${attempt}/3: impossibile ottenere SHA`);
+                        continue;
+                    }
+                    
+                    const currentFile = await retryCheckResponse.json();
+                    const newSha = currentFile.sha;
+                    console.log(`🔄 Tentativo ${attempt}/3: Nuovo SHA:`, newSha.substring(0, 10) + '...');
+                    
+                    // Riprova upload con nuovo SHA
+                    const retryUploadResponse = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${GITHUB_CONFIG.token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Update ${fileName} (retry ${attempt} after conflict)`,
+                            content: base64Content,
+                            branch: GITHUB_CONFIG.branch,
+                            sha: newSha
+                        })
+                    });
+                    
+                    if (retryUploadResponse.ok) {
+                        console.log(`✅ Progetto salvato con successo (tentativo ${attempt}): ${fileName}`);
+                        return true;
+                    }
+                    
+                    console.warn(`⚠️ Tentativo ${attempt}/3 fallito:`, retryUploadResponse.status);
+                } catch (retryError) {
+                    console.warn(`⚠️ Tentativo ${attempt}/3 errore:`, retryError.message);
                 }
-            } else {
-                throw new Error('Impossibile ottenere SHA corrente per retry');
             }
+            
+            // Tutti i tentativi falliti
+            console.error('❌ Tutti i 3 tentativi falliti per conflitto 409');
+            throw new Error('Upload fallito dopo 3 tentativi (conflitto SHA persistente)');
         }
         
         if (!uploadResponse.ok) {
