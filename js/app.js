@@ -15477,10 +15477,7 @@ function renderPortoncinoConfig(project, pos, ing) {
                                 class="w-full compact-input border rounded mt-1">
                             ${typeof getModelliAntaOptionsHTML === 'function'
                                 ? getModelliAntaOptionsHTML(ptc.modelloAnta, comb)
-                                : `<option value="">Seleziona...</option>
-                            ${Object.entries(FINDOOR_MODELLI_ANTA).map(([cod, m]) => 
-                                \`<option value="\${cod}" \${ptc.modelloAnta === cod ? 'selected' : ''}>\${cod} - \${m.desc} (min \${m.minL}×\${m.minH})</option>\`
-                            ).join('')}`}
+                                : '<option value="">Caricare findoor-portoncini.js</option>'}
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
