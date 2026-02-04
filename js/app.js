@@ -13980,13 +13980,9 @@ function renderStep9ConfigPortoncini(project) {
                         <label class="block text-sm font-medium mb-1">5. Modello Anta</label>
                         <select onchange="updateConfigPortoncini('${project.id}', 'modelloAnta', this.value)"
                                 class="w-full px-3 py-2 border rounded-lg">
-                            <option value="">Seleziona...</option>
-                            <option value="D101" ${cfg.modelloAnta === 'D101' ? 'selected' : ''}>D101 - Base</option>
-                            <option value="D102" ${cfg.modelloAnta === 'D102' ? 'selected' : ''}>D102 - Con vetro</option>
-                            <option value="D201" ${cfg.modelloAnta === 'D201' ? 'selected' : ''}>D201 - Premium</option>
-                            <option value="D202" ${cfg.modelloAnta === 'D202' ? 'selected' : ''}>D202 - Premium vetro</option>
-                            <option value="D301" ${cfg.modelloAnta === 'D301' ? 'selected' : ''}>D301 - Design</option>
-                            <option value="D401" ${cfg.modelloAnta === 'D401' ? 'selected' : ''}>D401 - Top</option>
+                            ${typeof getModelliAntaOptionsHTML === 'function' 
+                                ? getModelliAntaOptionsHTML(cfg.modelloAnta, 'PVC-PVC')
+                                : '<option value="">Caricamento modelli...</option>'}
                         </select>
                     </div>
                     
@@ -14729,34 +14725,7 @@ function renderIngressoTab(project, pos) {
 // 🚪 Configurazione PORTONCINO Finstral FIN-Door v5.25
 
 // v5.25: Helper per info tipo apertura
-function getTipoAperturaInfo(tipo) {
-    const info = {
-        '720': 'Porta singola standard',
-        '625': 'Porta singola (variante calcolo)',
-        '621': 'Porta con elemento laterale fisso a sinistra',
-        '622': 'Porta con elemento laterale fisso a destra',
-        '621C': 'Porta accoppiata con laterale fisso a sinistra',
-        '622C': 'Porta accoppiata con laterale fisso a destra',
-        '633': 'Porta con due elementi laterali fissi',
-        '633C': 'Porta accoppiata con due laterali fissi',
-        '624': 'Porta con sopraluce fisso superiore',
-        '623': 'Porta con anta superiore (ribalta)',
-        '624C': 'Porta accoppiata con sopraluce',
-        '623C': 'Porta accoppiata con anta superiore',
-        '636': 'Doppia porta (due ante apribili)',
-        '626': 'Doppia porta + laterale fisso a sinistra',
-        '627': 'Doppia porta + laterale fisso a destra',
-        '649': 'Doppia porta + due elementi laterali fissi',
-        '628': 'Doppia porta + sopraluce fisso',
-        '629': 'Doppia porta + anta superiore',
-        '634': 'Porta + laterale + sopraluce (3 campi)',
-        '638': 'Porta + laterale + doppio sopraluce (4 campi)',
-        '644': 'Porta + laterale + anta superiore (3 campi)',
-        '640': 'Porta + 2 laterali + sopraluce centrale (6 campi)',
-        '663': 'Porta + 2 laterali + 3 sopraluce (6 campi)'
-    };
-    return info[tipo] || 'Seleziona tipo apertura';
-}
+// getTipoAperturaInfo() → CENTRALIZZATO in findoor-portoncini.js (window.getTipoAperturaInfo)
 
 // 🚪 v5.60: Tab PORTA INTERNA - Eredita default dal progetto
 function renderPortaInternaTab(project, pos) {
@@ -15506,10 +15475,12 @@ function renderPortoncinoConfig(project, pos, ing) {
                         <label class="text-xs font-medium">Modello</label>
                         <select onchange="updateIngressoData('${project.id}', '${pos.id}', 'portoncino', 'modelloAnta', this.value)"
                                 class="w-full compact-input border rounded mt-1">
-                            <option value="">Seleziona...</option>
+                            ${typeof getModelliAntaOptionsHTML === 'function'
+                                ? getModelliAntaOptionsHTML(ptc.modelloAnta, comb)
+                                : `<option value="">Seleziona...</option>
                             ${Object.entries(FINDOOR_MODELLI_ANTA).map(([cod, m]) => 
-                                `<option value="${cod}" ${ptc.modelloAnta === cod ? 'selected' : ''}>${cod} - ${m.desc} (min ${m.minL}×${m.minH})</option>`
-                            ).join('')}
+                                \`<option value="\${cod}" \${ptc.modelloAnta === cod ? 'selected' : ''}>\${cod} - \${m.desc} (min \${m.minL}×\${m.minH})</option>\`
+                            ).join('')}`}
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
@@ -15791,6 +15762,20 @@ function updateIngressoTaglio(projectId, posId, posizione, valore) {
         delete pos.ingresso.portoncino.tagli[posizione];
     }
     
+    saveState();
+    render();
+}
+
+// 🆕 v5.90: UI wrapper per aggiornamento combinazione materiali portoncino
+// Usa findoorAdjustCombinazione() dal modulo findoor-portoncini.js
+function checkCombinazioneAndUpdate(projectId, posId) {
+    const project = state.projects.find(p => p.id === projectId);
+    const pos = project?.positions.find(p => p.id === posId);
+    if (!pos?.ingresso?.portoncino) return;
+    
+    if (typeof window.findoorAdjustCombinazione === 'function') {
+        window.findoorAdjustCombinazione(pos.ingresso.portoncino);
+    }
     saveState();
     render();
 }
@@ -20585,13 +20570,9 @@ function renderPortonciniTab(project, pos) {
                                 <label class="text-xs font-medium">Modello Anta</label>
                                 <select onchange="updatePortoncino('${project.id}', '${pos.id}', 'modelloAnta', this.value)"
                                         class="w-full compact-input border rounded mt-1">
-                                    <option value="">Seleziona...</option>
-                                    <option value="D101" ${ptc.modelloAnta === 'D101' ? 'selected' : ''}>D101 - Base</option>
-                                    <option value="D102" ${ptc.modelloAnta === 'D102' ? 'selected' : ''}>D102 - Con vetro</option>
-                                    <option value="D201" ${ptc.modelloAnta === 'D201' ? 'selected' : ''}>D201 - Premium</option>
-                                    <option value="D202" ${ptc.modelloAnta === 'D202' ? 'selected' : ''}>D202 - Premium vetro</option>
-                                    <option value="D301" ${ptc.modelloAnta === 'D301' ? 'selected' : ''}>D301 - Design</option>
-                                    <option value="D401" ${ptc.modelloAnta === 'D401' ? 'selected' : ''}>D401 - Top</option>
+                                    ${typeof getModelliAntaOptionsHTML === 'function' 
+                                        ? getModelliAntaOptionsHTML(ptc.modelloAnta, 'PVC-PVC')
+                                        : '<option value="">Caricamento modelli...</option>'}
                                 </select>
                             </div>
                             <div>
