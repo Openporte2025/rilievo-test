@@ -2,7 +2,7 @@
   "name": "Open Porte & Finestre",
   "short_name": "OpenPorte",
   "description": "App rilievi serramenti - Misure, configurazioni, preventivi",
-  "version": "5.746",
+  "version": "5.90",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
