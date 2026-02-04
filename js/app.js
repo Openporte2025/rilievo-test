@@ -8095,15 +8095,18 @@ function createProject(name, client) {
     return project;
 }
 
-// v5.90: Cicla stato progetto: preventivo → ordine → annullato → preventivo
+// v5.90: Cicla stato progetto (delega a modulo condiviso se disponibile)
 function cycleProjectStato(projectId) {
+    if (typeof ProjectListView !== 'undefined') {
+        ProjectListView.cycleStato(projectId);
+        return;
+    }
+    // Fallback standalone
     const project = state.projects.find(p => p.id === projectId);
     if (!project) return;
     const cycle = { preventivo: 'ordine', ordine: 'annullato', annullato: 'preventivo' };
-    const oldStato = project.stato || 'preventivo';
-    project.stato = cycle[oldStato] || 'preventivo';
-    const labels = { preventivo: '📋 Preventivo', ordine: '✅ Ordine', annullato: '❌ Annullato' };
-    showNotification(`${project.name}: ${labels[project.stato]}`, 'success', 2000);
+    project.stato = cycle[project.stato || 'preventivo'] || 'preventivo';
+    showNotification(`${project.name}: ${project.stato}`, 'success', 2000);
     saveState();
     render();
 }
@@ -10619,110 +10622,27 @@ function ProjectsList() {
         `;
     }
 
+    // v5.90: Usa modulo condiviso ProjectListView
+    if (typeof ProjectListView !== 'undefined') {
+        const normalized = ProjectListView.normalizeAll(state.projects || [], 'app');
+        return `
+            ${Header()}
+            ${ProjectListView.generateHTML(normalized, {
+                onOpenFn: 'openProject',
+                onDeleteFn: 'deleteProject',
+                showCompletamento: false,
+                showAmbiente: false,
+                stickyTabs: true,
+                stickyTop: '60px'
+            })}
+        `;
+    }
+    
+    // Fallback se modulo non caricato
     return `
         ${Header()}
-        
-        <!-- v5.90: Tabs stato progetto -->
-        <div style="position:sticky;top:60px;z-index:30;background:#f3f4f6;padding:8px 16px 0;">
-            <div style="display:flex;gap:4px;background:white;border-radius:12px 12px 0 0;padding:4px;box-shadow:0 -2px 10px rgba(0,0,0,0.05);">
-                ${['preventivo','ordine','annullato'].map(tab => {
-                    const count = (state.projects || []).filter(p => (p.stato || 'preventivo') === tab).length;
-                    const active = (state.projectListTab || 'preventivo') === tab;
-                    const cfg = {
-                        preventivo: { label: '📋 Preventivi', color: '#6366f1', bg: '#eef2ff' },
-                        ordine:     { label: '✅ Ordini',     color: '#059669', bg: '#ecfdf5' },
-                        annullato:  { label: '❌ Annullati',  color: '#9ca3af', bg: '#f9fafb' }
-                    }[tab];
-                    return `<button onclick="state.projectListTab='${tab}';render();" 
-                        style="flex:1;padding:10px 8px;border:none;border-radius:10px;font-weight:${active?700:500};font-size:14px;cursor:pointer;transition:all 0.2s;
-                        background:${active ? cfg.bg : 'transparent'};color:${active ? cfg.color : '#6b7280'};
-                        ${active ? 'box-shadow:0 2px 8px rgba(0,0,0,0.08);' : ''}">
-                        ${cfg.label} <span style="display:inline-block;min-width:22px;padding:1px 6px;border-radius:10px;font-size:12px;font-weight:700;
-                            background:${active ? cfg.color : '#e5e7eb'};color:${active ? 'white' : '#6b7280'};margin-left:4px;">${count}</span>
-                    </button>`;
-                }).join('')}
-            </div>
-        </div>
-        
-        <div style="padding:12px 16px;">
-            ${(() => {
-                const currentTab = state.projectListTab || 'preventivo';
-                const filtered = (state.projects || [])
-                    .filter(p => (p.stato || 'preventivo') === currentTab)
-                    .sort((a, b) => {
-                        const dateA = a.metadata?.updated || a.dataModifica || a.createdAt || '';
-                        const dateB = b.metadata?.updated || b.dataModifica || b.createdAt || '';
-                        return dateB.localeCompare(dateA);
-                    });
-                
-                if (filtered.length === 0) {
-                    const emptyMsg = {
-                        preventivo: 'Nessun preventivo in corso',
-                        ordine: 'Nessun ordine confermato',
-                        annullato: 'Nessun progetto annullato'
-                    }[currentTab];
-                    return '<div style="text-align:center;padding:60px 20px;color:#9ca3af;font-size:16px;">' +
-                           '<div style="font-size:48px;margin-bottom:12px;">' + (currentTab === 'preventivo' ? '📋' : currentTab === 'ordine' ? '✅' : '🗄️') + '</div>' +
-                           emptyMsg + '</div>';
-                }
-                
-                return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;">' +
-                    filtered.map(p => {
-                        const clientName = p.client || [p.clientData?.cognome, p.clientData?.nome].filter(Boolean).join(' ') || 'Cliente';
-                        const hasOdoo = p.odoo_customer_id || p.odoo_customer;
-                        const posCount = (p.positions || []).length;
-                        const dateStr = p.metadata?.updated ? new Date(p.metadata.updated).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
-                        const statoCfg = {
-                            preventivo: { icon: '📋', color: '#6366f1', bg: '#eef2ff', label: 'Preventivo' },
-                            ordine:     { icon: '✅', color: '#059669', bg: '#ecfdf5', label: 'Ordine' },
-                            annullato:  { icon: '❌', color: '#9ca3af', bg: '#f9fafb', label: 'Annullato' }
-                        }[p.stato || 'preventivo'];
-                        
-                        return `
-                        <div onclick="openProject('${p.id}')" 
-                             style="background:white;border-radius:12px;padding:14px 16px;cursor:pointer;border:1px solid #e5e7eb;
-                                    transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:relative;
-                                    ${currentTab === 'annullato' ? 'opacity:0.65;' : ''}"
-                             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
-                             onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.06)';this.style.transform='none'">
-                            
-                            <!-- Riga 1: Cliente (grande) + azioni -->
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-weight:700;font-size:16px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                        ${clientName.toUpperCase()}
-                                        ${hasOdoo ? '<span style="display:inline-block;padding:1px 6px;background:#714B67;color:white;border-radius:4px;font-size:10px;font-weight:600;margin-left:6px;vertical-align:middle;">Odoo</span>' : ''}
-                                    </div>
-                                </div>
-                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-                                    <button onclick="event.stopPropagation();cycleProjectStato('${p.id}')" 
-                                            title="Cambia stato"
-                                            style="padding:4px 8px;border:1px solid ${statoCfg.color};background:${statoCfg.bg};border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;color:${statoCfg.color};transition:all 0.15s;">
-                                        ${statoCfg.icon} ${statoCfg.label}
-                                    </button>
-                                    <button onclick="event.stopPropagation();deleteProject('${p.id}')" 
-                                            title="Elimina"
-                                            style="padding:4px 6px;border:none;background:none;cursor:pointer;font-size:14px;opacity:0.4;transition:opacity 0.15s;"
-                                            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.4'">🗑️</button>
-                                </div>
-                            </div>
-                            
-                            <!-- Riga 2: Progetto + ID -->
-                            <div style="font-size:13px;color:#6b7280;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                                <span style="font-weight:500;">${p.name || '—'}</span>
-                                <span style="font-family:monospace;font-size:11px;padding:1px 5px;background:#f3f4f6;border-radius:4px;color:#9ca3af;">${formatProjectId(p.id)}</span>
-                            </div>
-                            
-                            <!-- Riga 3: Info -->
-                            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#9ca3af;padding-top:6px;border-top:1px solid #f3f4f6;">
-                                <span>📋 ${posCount} posizioni</span>
-                                ${p.metadata?.version ? '<span style="font-family:monospace;">v' + p.metadata.version + '</span>' : ''}
-                                ${dateStr ? '<span>' + dateStr + '</span>' : ''}
-                                <span style="color:#6366f1;font-weight:600;">Apri →</span>
-                            </div>
-                        </div>`;
-                    }).join('') + '</div>';
-            })()}
+        <div style="padding:20px;text-align:center;color:#ef4444;">
+            ⚠️ Modulo project-list-view.js non caricato
         </div>
     `;
 }
