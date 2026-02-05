@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 🔧 v5.95: Alias OPZIONI.* → OPZIONI_PRODOTTI (unica fonte) (05 FEB 2026)
 // 🔧 v5.93: Picker visuale modelli portoncino con griglia immagini (05 FEB 2026)
 // 🔧 v5.92: Catalogo immagini portoncini FIN-Door inline (05 FEB 2026)
 // 🔧 v5.92: Fix manualDownloadFromGitHub path (progetti/) (05 FEB 2026)
@@ -182,23 +183,22 @@ window.openPortoncinoModelPicker = openPortoncinoModelPicker;
 // Invece di render() completo, aggiorniamo solo gli elementi necessari
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 ALIAS COSTANTI DA OPZIONI COMUNI (v5.743)
+// 🔗 ALIAS COSTANTI DA OPZIONI_PRODOTTI v3.1.0 (unica fonte)
 // ═══════════════════════════════════════════════════════════════════════════════
-// Le costanti sono definite in opzioni-comuni.js, qui creiamo alias per compatibilità
+const P = window.OPZIONI_PRODOTTI;
+const COLORI_TAPPARELLE_PLASTICINO = P.tapparelle.colori;
+const GUIDE_PLASTICINO = P.tapparelle.guide;
+const COLORI_GUIDE_PLASTICINO = P.tapparelle.coloriGuide;
+const MODELLI_TAPPARELLE = P.tapparelle.modelli;
+const MOTORI_SOMFY = P.motori.modelli;
+const ACCESSORI_MOTORE_SOMFY = P.motori.accessori;
+const COMANDI_SOMFY = P.motori.comandi;
+const ACCESSORI_TAPPARELLA = P.tapparelle.accessoriManuali;
 
-const COLORI_TAPPARELLE_PLASTICINO = OPZIONI.COLORI_TAPPARELLE_PLASTICINO;
-const GUIDE_PLASTICINO = OPZIONI.GUIDE_PLASTICINO;
-const COLORI_GUIDE_PLASTICINO = OPZIONI.COLORI_GUIDE_PLASTICINO;
-const MODELLI_TAPPARELLE = OPZIONI.MODELLI_TAPPARELLE;
-const MOTORI_SOMFY = OPZIONI.MOTORI_SOMFY;
-const ACCESSORI_MOTORE_SOMFY = OPZIONI.ACCESSORI_MOTORE_SOMFY;
-const COMANDI_SOMFY = OPZIONI.COMANDI_SOMFY;
-const ACCESSORI_TAPPARELLA = OPZIONI.ACCESSORI_TAPPARELLA;
-
-// Funzioni helper da OPZIONI
-const getColoriGuide = OPZIONI.getColoriGuide;
-const getModelliTapparella = OPZIONI.getModelliTapparella;
-const getModelliTapparellaOptions = OPZIONI.getModelliTapparellaOptions;
+// Funzioni helper da OPZIONI_PRODOTTI
+const getColoriGuide = P.getColoriGuide.bind(P);
+const getModelliTapparella = P.getModelliTapparella.bind(P);
+const getModelliTapparellaOptions = P.getModelliTapparellaOptions.bind(P);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🆕 v5.77: NORMALIZZAZIONE DATI CON DATA_ACCESSOR
