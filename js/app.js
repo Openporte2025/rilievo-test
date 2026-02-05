@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 🔧 v5.91: Fix centralizzato salvataggio/lettura stato progetto (05 FEB 2026)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -4084,10 +4085,17 @@ async function manualDownloadFromGitHub() {
                                 updatedCount++;
                                 console.log(`✅ UPDATED (same version but newer timestamp):`, proj.name);
                             } else {
+                                // 🔧 v5.91: Merge stato anche se skip
+                                if (proj.stato) existing.stato = proj.stato;
                                 console.log('⏭️ Skipped (local is same or newer):', proj.name);
                             }
                         } else {
                             // Locale più recente → CONFLITTO
+                            // 🔧 v5.91: Merge stato da GitHub comunque
+                            if (proj.stato && proj.stato !== 'preventivo') {
+                                existing.stato = proj.stato;
+                                console.log(`   🔄 Mergiato stato: ${proj.stato}`);
+                            }
                             console.warn(`⚠️ CONFLICT: Local v${localVersion} > GitHub v${githubVersion} for "${proj.name}"`);
                             console.warn('   → Keeping local version. Upload to sync.');
                         }
@@ -4428,6 +4436,11 @@ async function downloadFromGitHub() {
                         } else if (localVersion > remoteVersion) {
                             // Locale più recente → Ignora GitHub, carica locale su GitHub dopo
                             console.log(`📤 Locale più recente (v${localVersion} > v${remoteVersion}) - da ricaricare`);
+                            // 🔧 v5.91: Merge stato da GitHub (potrebbe essere cambiato da Dashboard)
+                            if (project.stato && project.stato !== 'preventivo') {
+                                existing.stato = project.stato;
+                                console.log(`   🔄 Mergiato stato: ${project.stato}`);
+                            }
                             skippedCount++;
                             // Verrà ricaricato da auto-sync
                         } else {
@@ -4441,6 +4454,10 @@ async function downloadFromGitHub() {
                                 updatedCount++;
                             } else {
                                 console.log(`✅ Progetti identici (v${localVersion})`);
+                                // 🔧 v5.91: Merge stato da GitHub anche se identici
+                                if (project.stato) {
+                                    existing.stato = project.stato;
+                                }
                                 skippedCount++;
                             }
                         }
@@ -5090,6 +5107,9 @@ async function uploadSingleProjectToGitHub(project) {
             // DATE
             created: updatedProject.created || new Date().toISOString(),
             updated: new Date().toISOString(),
+            
+            // 🔧 v5.91: Stato progetto (preventivo/ordine/annullato)
+            stato: updatedProject.stato || 'preventivo',
             
             // 🆕 v4.61: METADATA COMPLETO con versioning e history
             metadata: updatedProject.metadata || {
