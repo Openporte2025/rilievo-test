@@ -1,7 +1,26 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 🔧 v5.92: Catalogo immagini portoncini FIN-Door inline (05 FEB 2026)
+// 🔧 v5.92: Fix manualDownloadFromGitHub path (progetti/) (05 FEB 2026)
 // 🔧 v5.91: Fix centralizzato salvataggio/lettura stato progetto (05 FEB 2026)
 // ═══════════════════════════════════════════════════════════════════════════════
+
+const APP_VERSION = '5.92';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🖼️ HELPER: Preview immagine modello portoncino FIN-Door
+// Usa FINDOOR_CATALOGO da findoor-portoncini-catalogo.js (shared-database)
+// ═══════════════════════════════════════════════════════════════════════════════
+function getPortoncinoImgHTML(codiceModello, size = 100) {
+    if (!codiceModello || typeof FINDOOR_CATALOGO === 'undefined') return '';
+    const src = FINDOOR_CATALOGO.getModello(codiceModello);
+    if (!src) return `<div style="width:${size}px;height:${Math.round(size*1.9)}px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:11px;text-align:center">N/D</div>`;
+    return `<img src="${src}" style="width:${size}px;height:auto;border-radius:6px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.1)" alt="Mod.${codiceModello}">`;
+}
+function updatePortoncinoImgPreview(imgContainerId, codiceModello) {
+    const el = document.getElementById(imgContainerId);
+    if (el) el.innerHTML = getPortoncinoImgHTML(codiceModello, 90);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🔧 v5.88: EXPORT CENTRALIZZATO posizioni + FIX flush dati cliente prima di Avanti + Finstral full shared (02 FEB 2026)
@@ -3966,7 +3985,7 @@ async function manualDownloadFromGitHub() {
         showNotification('⬇️ Download da GitHub in corso...', 'info', 3000);
         
         // Lista tutti i file nel repository
-        const listUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents?ref=${GITHUB_CONFIG.branch}`;
+        const listUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.projectsPath}?ref=${GITHUB_CONFIG.branch}`;
         
         console.log('📂 Listing files from:', listUrl);
         
@@ -13998,12 +14017,17 @@ function renderStep9ConfigPortoncini(project) {
                     <!-- MODELLO ANTA -->
                     <div>
                         <label class="block text-sm font-medium mb-1">5. Modello Anta</label>
-                        <select onchange="updateConfigPortoncini('${project.id}', 'modelloAnta', this.value)"
-                                class="w-full px-3 py-2 border rounded-lg">
-                            ${typeof getModelliAntaOptionsHTML === 'function' 
-                                ? getModelliAntaOptionsHTML(cfg.modelloAnta, 'PVC-PVC')
-                                : '<option value="">Caricamento modelli...</option>'}
-                        </select>
+                        <div class="flex gap-2 items-start">
+                            <select onchange="updateConfigPortoncini('${project.id}', 'modelloAnta', this.value); updatePortoncinoImgPreview('ptcImgGlobal-${project.id}', this.value)"
+                                    class="w-full px-3 py-2 border rounded-lg flex-1">
+                                ${typeof getModelliAntaOptionsHTML === 'function' 
+                                    ? getModelliAntaOptionsHTML(cfg.modelloAnta, 'PVC-PVC')
+                                    : '<option value="">Caricamento modelli...</option>'}
+                            </select>
+                            <div id="ptcImgGlobal-${project.id}" class="flex-shrink-0">
+                                ${getPortoncinoImgHTML(cfg.modelloAnta, 90)}
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- PANNELLO -->
@@ -15490,31 +15514,38 @@ function renderPortoncinoConfig(project, pos, ing) {
             <!-- 🎨 MODELLO ANTA -->
             <div class="bg-orange-50 border-2 border-orange-200 rounded-lg p-4 mb-3">
                 <h5 class="font-semibold text-orange-800 mb-3">🎨 4. Modello Anta</h5>
-                <div class="grid md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs font-medium">Modello</label>
-                        <select onchange="updateIngressoData('${project.id}', '${pos.id}', 'portoncino', 'modelloAnta', this.value)"
-                                class="w-full compact-input border rounded mt-1">
-                            ${typeof getModelliAntaOptionsHTML === 'function'
-                                ? getModelliAntaOptionsHTML(ptc.modelloAnta, comb)
-                                : '<option value="">Caricare findoor-portoncini.js</option>'}
-                        </select>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <div class="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-medium">Modello</label>
+                                <select onchange="updateIngressoData('${project.id}', '${pos.id}', 'portoncino', 'modelloAnta', this.value); updatePortoncinoImgPreview('ptcImgPos-${pos.id}', this.value)"
+                                        class="w-full compact-input border rounded mt-1">
+                                    ${typeof getModelliAntaOptionsHTML === 'function'
+                                        ? getModelliAntaOptionsHTML(ptc.modelloAnta, comb)
+                                        : '<option value="">Caricare findoor-portoncini.js</option>'}
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${supplAnta > 0 ? `
+                                    <div class="bg-orange-200 p-2 rounded text-sm flex-1 text-center">
+                                        Suppl. modello: <strong>+€${supplAnta.toLocaleString('it-IT')}</strong>
+                                    </div>
+                                ` : `
+                                    <div class="bg-gray-100 p-2 rounded text-sm flex-1 text-center text-gray-500">
+                                        Seleziona modello per vedere supplemento
+                                    </div>
+                                `}
+                                <label class="flex items-center gap-1 text-sm">
+                                    <input type="checkbox" ${ptc.fonoassorbente ? 'checked' : ''}
+                                           onchange="updateIngressoData('${project.id}', '${pos.id}', 'portoncino', 'fonoassorbente', this.checked)">
+                                    Fonoass.
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        ${supplAnta > 0 ? `
-                            <div class="bg-orange-200 p-2 rounded text-sm flex-1 text-center">
-                                Suppl. modello: <strong>+€${supplAnta.toLocaleString('it-IT')}</strong>
-                            </div>
-                        ` : `
-                            <div class="bg-gray-100 p-2 rounded text-sm flex-1 text-center text-gray-500">
-                                Seleziona modello per vedere supplemento
-                            </div>
-                        `}
-                        <label class="flex items-center gap-1 text-sm">
-                            <input type="checkbox" ${ptc.fonoassorbente ? 'checked' : ''}
-                                   onchange="updateIngressoData('${project.id}', '${pos.id}', 'portoncino', 'fonoassorbente', this.checked)">
-                            Fonoass.
-                        </label>
+                    <div id="ptcImgPos-${pos.id}" class="flex-shrink-0">
+                        ${getPortoncinoImgHTML(ptc.modelloAnta, 90)}
                     </div>
                 </div>
             </div>
@@ -20582,26 +20613,31 @@ function renderPortonciniTab(project, pos) {
                         <h5 class="font-semibold text-purple-800 mb-3 flex items-center gap-2">
                             🚪 Anta e Pannello
                         </h5>
-                        <div class="grid md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-medium">Modello Anta</label>
-                                <select onchange="updatePortoncino('${project.id}', '${pos.id}', 'modelloAnta', this.value)"
-                                        class="w-full compact-input border rounded mt-1">
-                                    ${typeof getModelliAntaOptionsHTML === 'function' 
-                                        ? getModelliAntaOptionsHTML(ptc.modelloAnta, 'PVC-PVC')
-                                        : '<option value="">Caricamento modelli...</option>'}
-                                </select>
+                        <div class="flex gap-3">
+                            <div class="flex-1 grid md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-medium">Modello Anta</label>
+                                    <select onchange="updatePortoncino('${project.id}', '${pos.id}', 'modelloAnta', this.value); updatePortoncinoImgPreview('ptcImgLegacy-${pos.id}', this.value)"
+                                            class="w-full compact-input border rounded mt-1">
+                                        ${typeof getModelliAntaOptionsHTML === 'function' 
+                                            ? getModelliAntaOptionsHTML(ptc.modelloAnta, 'PVC-PVC')
+                                            : '<option value="">Caricamento modelli...</option>'}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium">Pannello</label>
+                                    <select onchange="updatePortoncino('${project.id}', '${pos.id}', 'pannello', this.value)"
+                                            class="w-full compact-input border rounded mt-1">
+                                        <option value="">Seleziona...</option>
+                                        <option value="liscio" ${ptc.pannello === 'liscio' ? 'selected' : ''}>Liscio</option>
+                                        <option value="bugna" ${ptc.pannello === 'bugna' ? 'selected' : ''}>Bugna</option>
+                                        <option value="design" ${ptc.pannello === 'design' ? 'selected' : ''}>Design</option>
+                                        <option value="personalizzato" ${ptc.pannello === 'personalizzato' ? 'selected' : ''}>Personalizzato</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label class="text-xs font-medium">Pannello</label>
-                                <select onchange="updatePortoncino('${project.id}', '${pos.id}', 'pannello', this.value)"
-                                        class="w-full compact-input border rounded mt-1">
-                                    <option value="">Seleziona...</option>
-                                    <option value="liscio" ${ptc.pannello === 'liscio' ? 'selected' : ''}>Liscio</option>
-                                    <option value="bugna" ${ptc.pannello === 'bugna' ? 'selected' : ''}>Bugna</option>
-                                    <option value="design" ${ptc.pannello === 'design' ? 'selected' : ''}>Design</option>
-                                    <option value="personalizzato" ${ptc.pannello === 'personalizzato' ? 'selected' : ''}>Personalizzato</option>
-                                </select>
+                            <div id="ptcImgLegacy-${pos.id}" class="flex-shrink-0">
+                                ${getPortoncinoImgHTML(ptc.modelloAnta, 90)}
                             </div>
                         </div>
                     </div>
