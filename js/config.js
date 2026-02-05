@@ -28,8 +28,8 @@ let state = {
 };
 
 // ⚙️ VERSIONE APP - UNICO PUNTO DA MODIFICARE
-const APP_VERSION = '5.81';
-const APP_VERSION_NOTE = '🆕 UI_FORMS centralizzato + JSON_MANAGER v2.0.0';
+const APP_VERSION = '5.92';
+const APP_VERSION_NOTE = '🔧 Fix duplicato APP_VERSION (config.js unico punto)';
 
 // 📦 GitHub Configuration
 // 📦 FASE 027K: Configurazione GitHub Sync
