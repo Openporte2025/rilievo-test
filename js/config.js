@@ -28,7 +28,7 @@ let state = {
 };
 
 // ⚙️ VERSIONE APP - UNICO PUNTO DA MODIFICARE
-const APP_VERSION = '5.92';
+const APP_VERSION = '5.98';
 const APP_VERSION_NOTE = '🔧 Fix duplicato APP_VERSION (config.js unico punto)';
 
 // 📦 GitHub Configuration
