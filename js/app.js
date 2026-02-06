@@ -12779,25 +12779,7 @@ function renderStep6ConfigZanzariere(project) {
         return `<div class="text-center py-8"><p class="text-gray-500">Le zanzariere non sono state selezionate. Salta questo step.</p></div>`;
     }
     
-    // 🆕 v5.96: Usa renderConfigGlobaleFromCampi da CAMPI_PRODOTTI
-    if (typeof renderConfigGlobaleFromCampi === 'function' && typeof CAMPI_PRODOTTI !== 'undefined') {
-        return `
-            <div>
-                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span class="text-2xl">🦟</span> Configurazione Zanzariere Default
-                </h2>
-                <p class="text-gray-600 mb-4">Imposta i valori di default per tutte le zanzariere:</p>
-                
-                <div class="space-y-3">
-                    ${renderConfigGlobaleFromCampi(project, 'zanzariera')}
-                </div>
-                
-                ${renderBRMConfig(project, 'zanzariere', 'Zanzariere', '🦟')}
-            </div>
-        `;
-    }
-    
-    // Fallback: codice originale se render-config-campi.js non caricato
+    // v5.98: codice hardcoded — renderConfigGlobaleFromCampi non gestisce cascading Palagina
     const azienda = project.configZanzariere?.azienda || '';
     const isPalagina = azienda === 'Palagina';
     
@@ -12878,7 +12860,7 @@ function renderStep6ConfigZanzariere(project) {
                         <select onchange="updateConfigZanzariere('${project.id}', 'modelloF', this.value)"
                                 class="w-full px-3 py-2 border rounded-lg">
                             <option value="">Seleziona modello F...</option>
-                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(project.configZanzariere.lineaF) : []).map(m => `
+                            ${(PALAGINA_ZANZARIERE.modelli[project.configZanzariere.lineaF] || []).map(m => `
                                 <option value="${m.id}" ${project.configZanzariere?.modelloF === m.id ? 'selected' : ''}>
                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                 </option>
@@ -12912,7 +12894,7 @@ function renderStep6ConfigZanzariere(project) {
                         <select onchange="updateConfigZanzariere('${project.id}', 'modelloPF', this.value)"
                                 class="w-full px-3 py-2 border rounded-lg">
                             <option value="">Seleziona modello PF...</option>
-                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(project.configZanzariere.lineaPF) : []).map(m => `
+                            ${(PALAGINA_ZANZARIERE.modelli[project.configZanzariere.lineaPF] || []).map(m => `
                                 <option value="${m.id}" ${project.configZanzariere?.modelloPF === m.id ? 'selected' : ''}>
                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                 </option>
@@ -19681,7 +19663,7 @@ function renderPersianeTab(project, pos) {
                                         <select onchange="updateProduct('${project.id}', '${pos.id}', 'zanzariera', 'modello', this.value)"
                                                 class="w-full compact-input border rounded mt-1">
                                             <option value="">Seleziona modello...</option>
-                                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(linea) : []).map(m => `
+                                            ${(PALAGINA_ZANZARIERE.modelli[linea] || []).map(m => `
                                                 <option value="${m.id}" ${modello === m.id ? 'selected' : ''}>
                                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                                 </option>
