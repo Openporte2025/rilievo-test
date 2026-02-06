@@ -12878,7 +12878,7 @@ function renderStep6ConfigZanzariere(project) {
                         <select onchange="updateConfigZanzariere('${project.id}', 'modelloF', this.value)"
                                 class="w-full px-3 py-2 border rounded-lg">
                             <option value="">Seleziona modello F...</option>
-                            ${(PALAGINA_ZANZARIERE.modelli[project.configZanzariere.lineaF] || []).map(m => `
+                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(project.configZanzariere.lineaF) : []).map(m => `
                                 <option value="${m.id}" ${project.configZanzariere?.modelloF === m.id ? 'selected' : ''}>
                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                 </option>
@@ -12912,7 +12912,7 @@ function renderStep6ConfigZanzariere(project) {
                         <select onchange="updateConfigZanzariere('${project.id}', 'modelloPF', this.value)"
                                 class="w-full px-3 py-2 border rounded-lg">
                             <option value="">Seleziona modello PF...</option>
-                            ${(PALAGINA_ZANZARIERE.modelli[project.configZanzariere.lineaPF] || []).map(m => `
+                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(project.configZanzariere.lineaPF) : []).map(m => `
                                 <option value="${m.id}" ${project.configZanzariere?.modelloPF === m.id ? 'selected' : ''}>
                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                 </option>
@@ -19681,7 +19681,7 @@ function renderPersianeTab(project, pos) {
                                         <select onchange="updateProduct('${project.id}', '${pos.id}', 'zanzariera', 'modello', this.value)"
                                                 class="w-full compact-input border rounded mt-1">
                                             <option value="">Seleziona modello...</option>
-                                            ${(PALAGINA_ZANZARIERE.modelli[linea] || []).map(m => `
+                                            ${(PALAGINA_ZANZARIERE.getModelliByLinea ? PALAGINA_ZANZARIERE.getModelliByLinea(linea) : []).map(m => `
                                                 <option value="${m.id}" ${modello === m.id ? 'selected' : ''}>
                                                     ${m.nome} ${m.cassonetti !== '-' ? '(cass. '+m.cassonetti+')' : ''}
                                                 </option>
