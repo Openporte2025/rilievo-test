@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 🔧 v5.97: AMBIENTI da OPZIONI (unica fonte) - elimina lista inline (06 FEB 2026)
 // 🔧 v5.96: Step 5+6+7+Posizioni usano CAMPI_PRODOTTI + renderBRMPosizione (06 FEB 2026)
 // 🔧 v5.95: Alias OPZIONI.* → OPZIONI_PRODOTTI (unica fonte) (05 FEB 2026)
 // 🔧 v5.93: Picker visuale modelli portoncino con griglia immagini (05 FEB 2026)
@@ -14664,7 +14665,7 @@ function PositionDetail() {
                                 class="flex-1 compact-input border rounded ${!pos.ambiente ? 'border-red-500 bg-red-50' : ''}"
                                 style="display: ${(pos.ambienteMode || 'select') === 'select' ? 'block' : 'none'};">
                             <option value="">⚠️ Seleziona ambiente...</option>
-                            ${['Sala', 'Soggiorno', 'Cucina', 'Camera', 'Stanza', 'Cameretta', 'Matrimoniale', 'Disimpegno', 'Studio', 'Ufficio', 'Bagno1', 'Bagno2', 'Ripostiglio', 'Lavanderia', 'Scala', 'Cantina', 'Garage'].map(amb => `
+                            ${(window.OPZIONI?.AMBIENTI || ['Sala','Soggiorno','Cucina','Camera','Bagno','Studio']).map(amb => `
                                 <option value="${amb}" ${pos.ambiente === amb ? 'selected' : ''}>${amb}</option>
                             `).join('')}
                         </select>
