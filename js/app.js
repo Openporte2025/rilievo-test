@@ -12781,7 +12781,7 @@ function renderStep6ConfigZanzariere(project) {
     
     // v5.98: codice hardcoded — renderConfigGlobaleFromCampi non gestisce cascading Palagina
     const azienda = project.configZanzariere?.azienda || '';
-    const isPalagina = azienda === 'Palagina';
+    const isPalagina = azienda === 'Palagina' && typeof PALAGINA_ZANZARIERE !== 'undefined';
     
     return `
         <div>
