@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
-// 🔧 v5.96: Step 5+6+7 Tapparelle/Zanzariere/Cassonetti usano CAMPI_PRODOTTI (06 FEB 2026)
+// 🔧 v5.96: Step 5+6+7+Posizioni usano CAMPI_PRODOTTI + renderBRMPosizione (06 FEB 2026)
 // 🔧 v5.95: Alias OPZIONI.* → OPZIONI_PRODOTTI (unica fonte) (05 FEB 2026)
 // 🔧 v5.93: Picker visuale modelli portoncino con griglia immagini (05 FEB 2026)
 // 🔧 v5.92: Catalogo immagini portoncini FIN-Door inline (05 FEB 2026)
@@ -12020,6 +12020,117 @@ function renderBRMConfig(project, productType, productLabel, icon) {
     `;
 }
 
+// 🆕 v5.96: Funzione generica BRM posizione (usata da renderer centralizzato)
+function renderBRMPosizione(project, pos, productType, productData) {
+    const brmKeyMap = {
+        'infisso': 'brmConfigInfissi',
+        'persiana': 'brmConfigPersiane',
+        'tapparella': 'brmConfigTapparelle',
+        'zanzariera': 'brmConfigZanzariere',
+        'cassonetto': 'brmConfigCassonetti'
+    };
+    const brmConfig = project[brmKeyMap[productType]] || {};
+    const prod = productData;
+    
+    const misureL = ['LF', 'LVT', 'LVAR', 'TMV', 'LS'];
+    const misureH = ['HF', 'HVT', 'HVAR', 'HMT', 'HSoffitto', 'HParapettoSoffitto', 'HPavimentoParapetto'];
+    
+    return `
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 mb-3">
+            <div class="flex justify-between items-center mb-3">
+                <h5 class="font-bold text-amber-800 flex items-center gap-2">📏 BRM - Misura per Ordine</h5>
+                ${!prod.brmPersonalizzato ? `
+                    <button onclick="personalizzaBRM('${project.id}', '${pos.id}', '${productType}')"
+                            class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-all">
+                        🎨 Personalizza BRM
+                    </button>
+                ` : `
+                    <button onclick="ripristinaGlobale('${project.id}', '${pos.id}', '${productType}')"
+                            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-all">
+                        ↩️ Usa Globale
+                    </button>
+                `}
+            </div>
+            
+            ${!prod.brmPersonalizzato ? `
+                <div class="bg-white p-3 rounded border-2 border-amber-400">
+                    <p class="text-sm text-amber-800 mb-2"><strong>Formula Globale Attiva:</strong></p>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div><span class="font-semibold">BRM L =</span> ${brmConfig.misuraBaseL || '?'} ${brmConfig.operazioneL || '-'} ${brmConfig.valoreL || '0'}mm</div>
+                        <div><span class="font-semibold">BRM H =</span> ${brmConfig.misuraBaseH || '?'} ${brmConfig.operazioneH || '-'} ${brmConfig.valoreH || '0'}mm</div>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-3 mt-3">
+                    <div class="bg-white p-2 rounded border">
+                        <label class="text-xs font-semibold text-amber-800 block">📏 BRM Larghezza</label>
+                        <input type="number" value="${prod.BRM_L || ''}" readonly class="w-full compact-input border rounded mt-1 font-bold text-lg bg-gray-50">
+                    </div>
+                    <div class="bg-white p-2 rounded border">
+                        <label class="text-xs font-semibold text-amber-800 block">📏 BRM Altezza</label>
+                        <input type="number" value="${prod.BRM_H || ''}" readonly class="w-full compact-input border rounded mt-1 font-bold text-lg bg-gray-50">
+                    </div>
+                </div>
+            ` : `
+                <div class="bg-white p-3 rounded border-2 border-purple-400 mb-3">
+                    <p class="text-sm font-semibold text-purple-800 mb-2">⚙️ Formula Personalizzata:</p>
+                    <div class="mb-3">
+                        <label class="text-xs font-semibold text-purple-800 block mb-1">📏 BRM Larghezza</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <select onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'misuraBaseL', this.value)"
+                                    class="w-full px-2 py-1 border border-purple-500 rounded text-sm bg-white">
+                                <option value="">-</option>
+                                ${misureL.map(m => `<option value="${m}" ${prod.brmPersonalizzato?.misuraBaseL === m ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                            <select onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'operazioneL', this.value)"
+                                    class="w-full px-2 py-1 border border-purple-500 rounded text-sm bg-white">
+                                <option value="+" ${prod.brmPersonalizzato?.operazioneL === '+' ? 'selected' : ''}>+</option>
+                                <option value="-" ${prod.brmPersonalizzato?.operazioneL === '-' ? 'selected' : ''}>-</option>
+                            </select>
+                            <input type="number" value="${prod.brmPersonalizzato?.valoreL || '0'}"
+                                   onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'valoreL', this.value)"
+                                   class="w-full px-2 py-1 border border-purple-500 rounded text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-purple-800 block mb-1">📏 BRM Altezza</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <select onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'misuraBaseH', this.value)"
+                                    class="w-full px-2 py-1 border border-purple-500 rounded text-sm bg-white">
+                                <option value="">-</option>
+                                ${misureH.map(m => `<option value="${m}" ${prod.brmPersonalizzato?.misuraBaseH === m ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                            <select onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'operazioneH', this.value)"
+                                    class="w-full px-2 py-1 border border-purple-500 rounded text-sm bg-white">
+                                <option value="+" ${prod.brmPersonalizzato?.operazioneH === '+' ? 'selected' : ''}>+</option>
+                                <option value="-" ${prod.brmPersonalizzato?.operazioneH === '-' ? 'selected' : ''}>-</option>
+                            </select>
+                            <input type="number" value="${prod.brmPersonalizzato?.valoreH || '0'}"
+                                   onchange="updateBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}', 'valoreH', this.value)"
+                                   class="w-full px-2 py-1 border border-purple-500 rounded text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 flex justify-center">
+                    <button onclick="applicaBRMPersonalizzato('${project.id}', '${pos.id}', '${productType}')"
+                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-all">
+                        💾 Salva
+                    </button>
+                </div>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div class="bg-white p-2 rounded border-2 border-green-500">
+                        <label class="text-xs font-semibold text-green-800 block">✅ BRM Larghezza</label>
+                        <input type="number" value="${prod.BRM_L || ''}" readonly class="w-full compact-input border rounded mt-1 font-bold text-lg bg-gray-50">
+                    </div>
+                    <div class="bg-white p-2 rounded border-2 border-green-500">
+                        <label class="text-xs font-semibold text-green-800 block">✅ BRM Altezza</label>
+                        <input type="number" value="${prod.BRM_H || ''}" readonly class="w-full compact-input border rounded mt-1 font-bold text-lg bg-gray-50">
+                    </div>
+                </div>
+            `}
+        </div>
+    `;
+}
+
 function renderStep3ConfigInfissi(project) {
     if (!project.prodotti?.infissi) {
         return `
@@ -18532,6 +18643,129 @@ function renderInfissiTab(project, pos) {
 function renderPersianeTab(project, pos) {
     const per = pos.persiana;
     
+    // 🆕 v5.96: Usa renderPositionProductFromCampi se disponibile
+    if (per && typeof renderPositionProductFromCampi === 'function' && typeof CAMPI_PRODOTTI !== 'undefined') {
+        const qta = parseInt(per.qta);
+        
+        // Stato qta=0
+        if (qta === 0) {
+            return `
+                <div class="space-y-4">
+                    <div class="product-card">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-semibold text-purple-700 text-lg">🚪 Persiana</h4>
+                            <button onclick="deleteProduct('${project.id}', '${pos.id}', 'persiana')"
+                                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700">
+                                🗑️ Elimina
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-3">
+                                💡 <strong>Quantità = 0</strong> → Prodotto non presente in questa posizione.
+                                <br>Aumenta la quantità per configurare il prodotto.
+                            </p>
+                            <div class="max-w-xs">
+                                <label class="text-xs font-medium block mb-1">Quantità</label>
+                                <select onchange="updateProduct('${project.id}', '${pos.id}', 'persiana', 'qta', this.value)"
+                                        class="w-full compact-input border rounded font-semibold">
+                                    ${[0,1,2,3,4,5,6,7,8,9,10].map(n => `
+                                        <option value="${n}" ${(per.qta || '1') == n ? 'selected' : ''}>${n}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Stato attivo: usa renderer centralizzato
+        const fields = renderPositionProductFromCampi(project, pos, 'persiana', per);
+        
+        return `
+            <div class="space-y-4">
+                <div class="product-card">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-semibold text-purple-700 text-lg">🚪 Persiana</h4>
+                        <div class="flex gap-2">
+                            <button onclick="ricaricaPersianaDaGlobali('${project.id}', '${pos.id}')"
+                                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700"
+                                    title="Ricarica configurazione da Config Globali">
+                                🔄 Ricarica
+                            </button>
+                            <button onclick="deleteProduct('${project.id}', '${pos.id}', 'persiana')"
+                                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700">
+                                🗑️ Elimina
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 📋 DATI SPECIFICI (da CAMPI_PRODOTTI.posizione) -->
+                    <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-3">
+                        <h5 class="font-semibold text-purple-800 mb-3 flex items-center gap-2">📋 Dati Specifici</h5>
+                        <div class="grid md:grid-cols-3 gap-3">
+                            ${fields ? fields.qtaHtml : ''}
+                            ${fields ? fields.posFieldsHtml : ''}
+                        </div>
+                    </div>
+
+                    <!-- ⚙️ CONFIGURAZIONE (da CAMPI_PRODOTTI.configGlobale) -->
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-3">
+                        <h5 class="font-semibold text-amber-800 mb-3 flex items-center gap-2">⚙️ Configurazione</h5>
+                        <div class="grid md:grid-cols-3 gap-3">
+                            ${fields ? fields.configFieldsHtml : ''}
+                        </div>
+                    </div>
+
+                    <!-- 🔩 ACCESSORI PERSIANA -->
+                    ${renderAccessoriPersiana(project.id, pos.id, per)}
+
+                    <!-- 📷 FOTO PERSIANA -->
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-center mb-3">
+                            <h5 class="font-semibold text-blue-800 flex items-center gap-2">📷 Foto Persiana</h5>
+                            <button onclick="document.getElementById('foto-persiana-input-${project.id}-${pos.id}').click()"
+                                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700">
+                                📷 Carica Foto
+                            </button>
+                            <input type="file" 
+                                   id="foto-persiana-input-${project.id}-${pos.id}"
+                                   accept="image/*"
+                                   style="display: none;"
+                                   onchange="addFotoPersiana('${project.id}', '${pos.id}', event)">
+                        </div>
+                        ${per.foto && per.foto.length > 0 ? `
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                ${per.foto.map((foto, idx) => `
+                                    <div class="relative">
+                                        <img src="${foto}" class="w-full h-32 object-cover rounded border-2 border-blue-300">
+                                        <button onclick="removeFotoPersiana('${project.id}', '${pos.id}', ${idx})"
+                                                class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 text-xs hover:bg-red-700">
+                                            ✕
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <p class="text-sm text-gray-500 italic text-center py-3">1 foto per persiana<br>Nessuna foto caricata</p>
+                        `}
+                    </div>
+
+                    <!-- 📏 BRM -->
+                    ${renderBRMPosizione(project, pos, 'persiana', per)}
+
+                    <div class="mt-3">
+                        <label class="text-xs font-medium">📝 Note</label>
+                        <textarea onchange="updateProduct('${project.id}', '${pos.id}', 'persiana', 'note', this.value)"
+                                  class="w-full compact-input border rounded mt-1"
+                                  rows="2">${per.note || ''}</textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // === FALLBACK: codice originale ===
     return `
         <div class="space-y-4">
             ${!per ? `
