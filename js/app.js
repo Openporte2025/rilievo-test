@@ -17820,54 +17820,35 @@ function renderInfissiTab(project, pos) {
                     </div>
                     </div>
 
-                    <!-- 🔧 TIPO INFISSO ASSOCIATO -->
-                    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-3">
-                        <h5 class="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
-                            🔧 Tipo Infisso Associato
-                        </h5>
-                        <p class="text-sm text-gray-600 mb-3">Seleziona tipo:</p>
-                        <div class="flex gap-6">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" 
-                                       name="tipoInfissoAssociato-${project.id}-${pos.id}"
-                                       value="F"
-                                       ${(() => {
-                                           // Auto-selezione: se tipo contiene PF → PF, altrimenti F
-                                           if (inf.tipoInfissoAssociato) {
-                                               return inf.tipoInfissoAssociato === 'F' ? 'checked' : '';
-                                           } else {
-                                               // Default: se tipo non contiene PF → seleziona F
-                                               return (inf.tipo && !inf.tipo.includes('PF')) ? 'checked' : '';
-                                           }
-                                       })()}
-                                       onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'tipoInfissoAssociato', 'F')"
-                                       class="w-4 h-4">
-                                <span class="font-medium">F (Finestra)</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" 
-                                       name="tipoInfissoAssociato-${project.id}-${pos.id}"
-                                       value="PF"
-                                       ${(() => {
-                                           // Auto-selezione: se tipo contiene PF → PF
-                                           if (inf.tipoInfissoAssociato) {
-                                               return inf.tipoInfissoAssociato === 'PF' ? 'checked' : '';
-                                           } else {
-                                               // Default: se tipo contiene PF → seleziona PF
-                                               return (inf.tipo && inf.tipo.includes('PF')) ? 'checked' : '';
-                                           }
-                                       })()}
-                                       onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'tipoInfissoAssociato', 'PF')"
-                                       class="w-4 h-4">
-                                <span class="font-medium">PF (Porta Finestra)</span>
-                            </label>
+                    <!-- 🔧 v6.00: BADGE POSIZIONE → legge da pos.tipoApertura + pos.posizioneTelaio -->
+                    ${(() => {
+                        const tipoAp = pos.tipoApertura || inf.tipoInfissoAssociato || null;
+                        const posTelaio = pos.posizioneTelaio || pos.installazione || null;
+                        const hasTipo = tipoAp === 'F' || tipoAp === 'PF';
+                        const hasTelaio = posTelaio === 'filo_muro' || posTelaio === 'mazzetta';
+                        const allOk = hasTipo && hasTelaio;
+                        
+                        // Sync: se pos.tipoApertura è settato, assicura che inf.tipoInfissoAssociato sia allineato
+                        if (pos.tipoApertura && inf.tipoInfissoAssociato !== pos.tipoApertura) {
+                            inf.tipoInfissoAssociato = pos.tipoApertura;
+                        }
+                        
+                        return `
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <!-- Badge Tipo Apertura -->
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${hasTipo ? (tipoAp === 'F' ? 'bg-green-50 border-green-400' : 'bg-blue-50 border-blue-400') : 'bg-orange-50 border-orange-400'}">
+                            <span class="text-lg">${tipoAp === 'F' ? '🪟' : tipoAp === 'PF' ? '🚪' : '⚠️'}</span>
+                            <span class="font-bold text-sm">${tipoAp === 'F' ? 'Finestra' : tipoAp === 'PF' ? 'Porta-finestra' : 'Tipo non selezionato'}</span>
+                            ${!hasTipo ? '<span class="text-xs text-orange-600">↑ Seleziona in Misure</span>' : ''}
                         </div>
-                        ${!inf.tipoInfissoAssociato && !inf.tipo ? `
-                            <div class="mt-3 bg-amber-100 border-l-4 border-amber-500 p-3">
-                                <p class="text-sm text-amber-800">⚠️ Seleziona prima se F o PF</p>
-                            </div>
-                        ` : ''}
-                    </div>
+                        <!-- Badge Installazione -->
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${hasTelaio ? (posTelaio === 'filo_muro' ? 'bg-purple-50 border-purple-400' : 'bg-indigo-50 border-indigo-400') : 'bg-orange-50 border-orange-400'}">
+                            <span class="text-lg">${posTelaio === 'filo_muro' ? '🧱' : posTelaio === 'mazzetta' ? '📐' : '⚠️'}</span>
+                            <span class="font-bold text-sm">${posTelaio === 'filo_muro' ? 'Filo Muro Int' : posTelaio === 'mazzetta' ? 'Mazzetta' : 'Installazione non selezionata'}</span>
+                            ${!hasTelaio ? '<span class="text-xs text-orange-600">↑ Seleziona in Misure</span>' : ''}
+                        </div>
+                    </div>`;
+                    })()}
 
                     <!-- ⚙️ CONFIGURAZIONE -->
                     <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-3">
@@ -25031,7 +25012,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
- // 🚨 NOTIFICA VISIVA VERSIONE DINAMICA
+// 🚨 NOTIFICA VISIVA VERSIONE DINAMICA
 setTimeout(() => {
     showNotification(`🚪 v${APP_VERSION} ✅ ${APP_VERSION_NOTE}`, 'success', 5000);
 }, 1000);
