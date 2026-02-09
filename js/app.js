@@ -25031,7 +25031,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 🚨 NOTIFICA VISIVA VERSIONE DINAMICA
+ // 🚨 NOTIFICA VISIVA VERSIONE DINAMICA
 setTimeout(() => {
     showNotification(`🚪 v${APP_VERSION} ✅ ${APP_VERSION_NOTE}`, 'success', 5000);
 }, 1000);
