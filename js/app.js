@@ -1275,103 +1275,128 @@ function renderFieldWithToggle(config) {
 // ═══════════════════════════════════════════════════════════════
 
 // Handler globale per gestire il cambio tra select e custom input
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 v5.99: BRIDGE UI_SELECT_CUSTOM → Logica App Rilievo
-// Le funzioni renderSelectWithCustom e handleSelectCustomChange ora vengono da
-// shared-database/ui-select-custom.js. Qui registriamo solo i callback.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-(function() {
-    // Attendi che UI_SELECT_CUSTOM sia caricato
-    if (typeof UI_SELECT_CUSTOM === 'undefined') {
-        console.warn('⚠️ UI_SELECT_CUSTOM non trovato, uso funzioni locali legacy');
-        return;
+window.handleSelectCustomChange = (fieldName, selectElement, projectId, posId, productType) => {
+    const value = selectElement.value;
+    console.log('🟠 handleSelectCustomChange CHIAMATA:', {fieldName, value, projectId, posId, productType});
+    const customInputId = `${fieldName}_custom_${projectId || 'global'}_${posId || 'config'}_${productType || 'infisso'}`;
+    const customInput = document.getElementById(customInputId);
+    
+    // 🆕 v4.22: Feedback visivo immediato - cambia colore bordo
+    if (value === '' || value === '__custom__') {
+        // Vuoto o custom → arancione
+        selectElement.classList.remove('border-gray-300', 'bg-white');
+        selectElement.classList.add('border-orange-400', 'bg-orange-50');
+    } else {
+        // Compilato → bianco
+        selectElement.classList.remove('border-orange-400', 'bg-orange-50');
+        selectElement.classList.add('border-gray-300', 'bg-white');
     }
-
-    // --- CALLBACK CONFIG GLOBALE ---
-    UI_SELECT_CUSTOM.onConfigChange = (projectId, productType, fieldName, value) => {
-        console.log('🟠 onConfigChange:', {productType, fieldName, value});
-        markUserTyping();
+    
+    if (value === '__custom__') {
+        // Mostra input custom
+        if (customInput) {
+            customInput.style.display = 'block';
+            customInput.focus();
+        }
+    } else if (value !== '') {
+        // Nascondi input custom
+        if (customInput) {
+            customInput.style.display = 'none';
+            customInput.value = '';
+        }
         
         // Determina se è rilievo globale (productType plurale)
         const isRilievoGlobale = (productType === 'infissi' || productType === 'persiane' || 
                                  productType === 'tapparelle' || productType === 'zanzariere' || 
                                  productType === 'cassonetti' || productType === 'grate');
         
+        // ⚡ Per rilievo globale SALVA IMMEDIATAMENTE senza delay
         if (isRilievoGlobale) {
+            console.log('🟢 Chiamando updateRilievoGlobale IMMEDIATAMENTE');
             updateRilievoGlobale(projectId, productType, fieldName, value);
-        } else if (productType === 'infisso') {
-            updateConfigInfissi(projectId, fieldName, value);
-            if (fieldName === 'tipoAnta') render();
-        } else if (productType === 'persiana') {
-            updateConfigPersiane(projectId, fieldName, value);
-        } else if (productType === 'tapparella') {
-            updateConfigTapparelle(projectId, fieldName, value);
-        } else if (productType === 'zanzariera') {
-            updateConfigZanzariere(projectId, fieldName, value);
-        } else if (productType === 'cassonetto') {
-            updateConfigCassonetti(projectId, fieldName, value);
-        } else if (productType === 'grata') {
-            updateConfigGrate(projectId, fieldName, value);
-        }
-    };
-
-    // --- CALLBACK POSIZIONE ---
-    UI_SELECT_CUSTOM.onPositionChange = (projectId, posId, productType, fieldName, value) => {
-        console.log('🟠 onPositionChange:', {posId, productType, fieldName, value});
-        markUserTyping();
-        updateProduct(projectId, posId, productType, fieldName, value);
-        
-        if (fieldName === 'tipoAnta' || fieldName === 'finituraInt' || fieldName === 'finituraEst') {
-            render();
-        }
-    };
-
-    // --- CALLBACK POST-CAMBIO (re-render colori, etc.) ---
-    UI_SELECT_CUSTOM.onAfterChange = (fieldName, value, projectId, posId, productType) => {
-        if (fieldName === 'finituraInt' || fieldName === 'finituraEst') {
-            setTimeout(() => {
-                console.log(`🎨 TRIGGER: Aggiorno colori per ${fieldName}`);
-                if (typeof aggiornaColoriPerFinitura === 'function') {
-                    aggiornaColoriPerFinitura(fieldName, projectId, posId, productType);
+        } else {
+            // 🐛 FIX v5.710: Rimosso setTimeout(50ms) che causava mancato salvataggio
+            // Il delay impediva il salvataggio se utente esportava/sincronizzava rapidamente
+            if (posId && productType) {
+                // È una posizione
+                updateProduct(projectId, posId, productType, fieldName, value);
+                
+                // 🔧 v5.710: Re-render per campi che modificano la UI condizionalmente
+                if (fieldName === 'tipoAnta' || fieldName === 'finituraInt' || fieldName === 'finituraEst') {
+                    render();
                 }
-            }, 50);
+            } else {
+                // È config globale
+                if (productType === 'infisso') {
+                    updateConfigInfissi(projectId, fieldName, value);
+                    // 🔧 v5.710: Re-render per tipoAnta in config globale (sezione Anta Twin)
+                    if (fieldName === 'tipoAnta') {
+                        render();
+                    }
+                } else if (productType === 'persiana') {
+                    updateConfigPersiane(projectId, fieldName, value);
+                } else if (productType === 'tapparella') {
+                    updateConfigTapparelle(projectId, fieldName, value);
+                } else if (productType === 'zanzariera') {
+                    updateConfigZanzariere(projectId, fieldName, value);
+                } else if (productType === 'cassonetto') {
+                    updateConfigCassonetti(projectId, fieldName, value);
+                } else if (productType === 'grata') {
+                    console.log('🔒 handleSelectCustomChange → updateConfigGrate:', fieldName, value);
+                    updateConfigGrate(projectId, fieldName, value);
+                }
+            }
+            
+            // 🎨 v4.40: Se campo finitura, aggiorna colori IMMEDIATAMENTE
+            if (fieldName === 'finituraInt' || fieldName === 'finituraEst') {
+                // 🐛 FIX v5.710: Ridotto delay da 150ms a 50ms dopo rimozione primo delay
+                setTimeout(() => {
+                    console.log(`🎨 TRIGGER DIRETTO: Aggiorno colori per ${fieldName}`);
+                    aggiornaColoriPerFinitura(fieldName, projectId, posId, productType);
+                }, 50);
+            }
         }
-    };
+    }
+};
 
-    // Bridge retrocompatibilità: handleSelectCustomChange punta a UI_SELECT_CUSTOM
-    window.handleSelectCustomChange = (fieldName, selectElement, projectId, posId, productType) => {
-        UI_SELECT_CUSTOM.handleChange(fieldName, selectElement, projectId, posId, productType);
-    };
-
-    console.log('✅ v5.99: Bridge UI_SELECT_CUSTOM → App Rilievo registrato');
-})();
-
-// 🔧 v5.99: renderSelectWithCustom ora viene da ui-select-custom.js (shared)
-// Fallback locale SOLO se shared non caricato
-if (typeof renderSelectWithCustom === 'undefined') {
-    console.warn('⚠️ renderSelectWithCustom non da shared, uso fallback locale');
+// Funzione per renderizzare select con opzione custom
 function renderSelectWithCustom(fieldName, currentValue, options, projectId, posId, productType, label) {
+    // Determina se il valore corrente è custom (non nella lista)
     const isCustom = currentValue && currentValue !== '' && !options.includes(currentValue);
     const selectedValue = isCustom ? '__custom__' : (currentValue || '');
     const isEmpty = !currentValue || currentValue === '';
+    
+    // ID univoco per l'input custom
     const customInputId = `${fieldName}_custom_${projectId || 'global'}_${posId || 'config'}_${productType || 'infisso'}`;
+    
     return `
         <div class="mb-2">
             ${label ? `<label class="block text-base font-bold mb-1 text-gray-800">${label}</label>` : ''}
+            
+            <!-- Select principale -->
             <select 
                 class="w-full px-3 py-2.5 border-2 rounded-lg text-base font-medium ${isEmpty ? 'border-orange-400 bg-orange-50' : 'border-gray-300 bg-white'} focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
                 onchange="handleSelectCustomChange('${fieldName}', this, '${projectId}', '${posId || ''}', '${productType}')"
             >
                 <option value="" class="text-gray-400">▼ Seleziona...</option>
                 ${options.map(opt => `
-                    <option value="${opt}" ${selectedValue === opt ? 'selected' : ''} class="text-gray-900 font-medium">${opt}</option>
+                    <option value="${opt}" ${selectedValue === opt ? 'selected' : ''} class="text-gray-900 font-medium">
+                        ${opt}
+                    </option>
                 `).join('')}
-                <option value="__custom__" ${isCustom ? 'selected' : ''} class="text-blue-600 font-semibold">🖊️ Scrivi manualmente</option>
+                <option value="__custom__" ${isCustom ? 'selected' : ''} class="text-blue-600 font-semibold">
+                    🖊️ Scrivi manualmente
+                </option>
             </select>
-            <input type="text" class="w-full px-3 py-2.5 border-2 border-blue-400 rounded-lg mt-2 text-base font-medium bg-blue-50 focus:ring-2 focus:ring-blue-500" 
-                id="${customInputId}" placeholder="✏️ Scrivi valore personalizzato..."
-                value="${isCustom ? currentValue : ''}" style="display: ${isCustom ? 'block' : 'none'};"
+            
+            <!-- Input custom (nascosto se non serve) -->
+            <input 
+                type="text" 
+                class="w-full px-3 py-2.5 border-2 border-blue-400 rounded-lg mt-2 text-base font-medium bg-blue-50 focus:ring-2 focus:ring-blue-500" 
+                id="${customInputId}"
+                placeholder="✏️ Scrivi valore personalizzato..."
+                value="${isCustom ? currentValue : ''}"
+                style="display: ${isCustom ? 'block' : 'none'};"
                 onchange="${posId ? `updateProduct('${projectId}', '${posId}', '${productType}', '${fieldName}', this.value)` : 
                           productType === 'infisso' ? `updateConfigInfissi('${projectId}', '${fieldName}', this.value)` :
                           productType === 'persiana' ? `updateConfigPersiane('${projectId}', '${fieldName}', this.value)` :
@@ -1383,7 +1408,6 @@ function renderSelectWithCustom(fieldName, currentValue, options, projectId, pos
         </div>
     `;
 }
-} // fine fallback
 
 // 🎨 FASE 30024: Funzione per select colori dinamici (PVC vs Alluminio)
 function renderSelectColore(fieldName, currentValue, finituraValue, projectId, posId, productType, label) {
@@ -7509,7 +7533,9 @@ function calculatePositionCompleteness(pos, project) {
     // ========================================
     // STEP 3: MISURE POSIZIONE (34 punti)
     // ========================================
-    const misurePosizione = ['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT', 'L4', 'H4'];
+    const misurePosizione = typeof CAMPI_PRODOTTI !== 'undefined' && CAMPI_PRODOTTI.misure 
+        ? CAMPI_PRODOTTI.misure.filter(c => c.type === 'number').map(c => c.key)
+        : ['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT', 'L4', 'H4'];
     let misureCompilate = 0;
     
     misurePosizione.forEach(field => {
@@ -13644,7 +13670,9 @@ window.updateConfigClickZip = function(projectId, field, value) {
 // ============================================
 // 🔍 v5.745: RIEPILOGO VELOCE COLLASSABILE
 // ============================================
-const MISURE_DA_CONTROLLARE = ['LF', 'HF', 'LVT', 'HVT', 'TMV', 'HMT'];
+const MISURE_DA_CONTROLLARE = typeof CAMPI_PRODOTTI !== 'undefined' && CAMPI_PRODOTTI.MISURE_CONTROLLATE 
+    ? CAMPI_PRODOTTI.MISURE_CONTROLLATE 
+    : ['LF', 'HF', 'LVT', 'HVT', 'TMV', 'HMT'];
 
 function getStatoMisura(pos, campo) {
     const valore = pos.misure?.[campo];
@@ -17528,8 +17556,11 @@ function renderMisureTab(project, pos) {
                 
                 <p class="text-xs text-gray-500 mb-3">💡 Clicca <span class="text-red-500 font-bold">✗</span> se una misura non ti serve per questa posizione</p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="misure-grid-${pos.id}">
-                    ${['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT', 'L4', 'H4'].map((field, index) => {
-                        const isControlled = ['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT'].includes(field);
+                    ${(typeof CAMPI_PRODOTTI !== 'undefined' && CAMPI_PRODOTTI.misure 
+                        ? CAMPI_PRODOTTI.misure.filter(c => c.type === 'number' && !c.key.startsWith('Delta')).map(c => c.key)
+                        : ['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT', 'L4', 'H4']).map((field, index) => {
+                        const isControlled = (typeof CAMPI_PRODOTTI !== 'undefined' && CAMPI_PRODOTTI.MISURE_CONTROLLATE 
+                            ? CAMPI_PRODOTTI.MISURE_CONTROLLATE : ['LVT', 'HVT', 'LF', 'HF', 'TMV', 'HMT']).includes(field);
                         const nonServe = pos.misureNonServe?.[field] === true;
                         const hasValue = pos.misure?.[field] && pos.misure[field] !== '' && pos.misure[field] !== '0';
                         
@@ -17820,35 +17851,54 @@ function renderInfissiTab(project, pos) {
                     </div>
                     </div>
 
-                    <!-- 🔧 v6.00: BADGE POSIZIONE → legge da pos.tipoApertura + pos.posizioneTelaio -->
-                    ${(() => {
-                        const tipoAp = pos.tipoApertura || inf.tipoInfissoAssociato || null;
-                        const posTelaio = pos.posizioneTelaio || pos.installazione || null;
-                        const hasTipo = tipoAp === 'F' || tipoAp === 'PF';
-                        const hasTelaio = posTelaio === 'filo_muro' || posTelaio === 'mazzetta';
-                        const allOk = hasTipo && hasTelaio;
-                        
-                        // Sync: se pos.tipoApertura è settato, assicura che inf.tipoInfissoAssociato sia allineato
-                        if (pos.tipoApertura && inf.tipoInfissoAssociato !== pos.tipoApertura) {
-                            inf.tipoInfissoAssociato = pos.tipoApertura;
-                        }
-                        
-                        return `
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        <!-- Badge Tipo Apertura -->
-                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${hasTipo ? (tipoAp === 'F' ? 'bg-green-50 border-green-400' : 'bg-blue-50 border-blue-400') : 'bg-orange-50 border-orange-400'}">
-                            <span class="text-lg">${tipoAp === 'F' ? '🪟' : tipoAp === 'PF' ? '🚪' : '⚠️'}</span>
-                            <span class="font-bold text-sm">${tipoAp === 'F' ? 'Finestra' : tipoAp === 'PF' ? 'Porta-finestra' : 'Tipo non selezionato'}</span>
-                            ${!hasTipo ? '<span class="text-xs text-orange-600">↑ Seleziona in Misure</span>' : ''}
+                    <!-- 🔧 TIPO INFISSO ASSOCIATO -->
+                    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-3">
+                        <h5 class="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+                            🔧 Tipo Infisso Associato
+                        </h5>
+                        <p class="text-sm text-gray-600 mb-3">Seleziona tipo:</p>
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" 
+                                       name="tipoInfissoAssociato-${project.id}-${pos.id}"
+                                       value="F"
+                                       ${(() => {
+                                           // Auto-selezione: se tipo contiene PF → PF, altrimenti F
+                                           if (inf.tipoInfissoAssociato) {
+                                               return inf.tipoInfissoAssociato === 'F' ? 'checked' : '';
+                                           } else {
+                                               // Default: se tipo non contiene PF → seleziona F
+                                               return (inf.tipo && !inf.tipo.includes('PF')) ? 'checked' : '';
+                                           }
+                                       })()}
+                                       onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'tipoInfissoAssociato', 'F')"
+                                       class="w-4 h-4">
+                                <span class="font-medium">F (Finestra)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" 
+                                       name="tipoInfissoAssociato-${project.id}-${pos.id}"
+                                       value="PF"
+                                       ${(() => {
+                                           // Auto-selezione: se tipo contiene PF → PF
+                                           if (inf.tipoInfissoAssociato) {
+                                               return inf.tipoInfissoAssociato === 'PF' ? 'checked' : '';
+                                           } else {
+                                               // Default: se tipo contiene PF → seleziona PF
+                                               return (inf.tipo && inf.tipo.includes('PF')) ? 'checked' : '';
+                                           }
+                                       })()}
+                                       onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'tipoInfissoAssociato', 'PF')"
+                                       class="w-4 h-4">
+                                <span class="font-medium">PF (Porta Finestra)</span>
+                            </label>
                         </div>
-                        <!-- Badge Installazione -->
-                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${hasTelaio ? (posTelaio === 'filo_muro' ? 'bg-purple-50 border-purple-400' : 'bg-indigo-50 border-indigo-400') : 'bg-orange-50 border-orange-400'}">
-                            <span class="text-lg">${posTelaio === 'filo_muro' ? '🧱' : posTelaio === 'mazzetta' ? '📐' : '⚠️'}</span>
-                            <span class="font-bold text-sm">${posTelaio === 'filo_muro' ? 'Filo Muro Int' : posTelaio === 'mazzetta' ? 'Mazzetta' : 'Installazione non selezionata'}</span>
-                            ${!hasTelaio ? '<span class="text-xs text-orange-600">↑ Seleziona in Misure</span>' : ''}
-                        </div>
-                    </div>`;
-                    })()}
+                        ${!inf.tipoInfissoAssociato && !inf.tipo ? `
+                            <div class="mt-3 bg-amber-100 border-l-4 border-amber-500 p-3">
+                                <p class="text-sm text-amber-800">⚠️ Seleziona prima se F o PF</p>
+                            </div>
+                        ` : ''}
+                    </div>
 
                     <!-- ⚙️ CONFIGURAZIONE -->
                     <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-3">
