@@ -11366,32 +11366,22 @@ function renderStep2Products(project) {
                         </div>
                     </div>
                     
-                    <!-- ✅ NUOVO: Dislivello Piana DEFAULT FINESTRE (F) -->
+                    <!-- ✅ Dislivello Piana DEFAULT FINESTRE (F) -->
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mt-4">
                         <h3 class="text-sm font-bold text-blue-800 mb-3">📐 Dislivello Piana - FINESTRE (F) - Default</h3>
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-xs font-medium mb-2">C'è dislivello?</label>
-                                <div class="flex gap-4">
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="dislivelloFinestre-${project.id}" value="no"
-                                               ${!project.caratteristicheMuro?.dislivelloPianaFinestre?.presente ? 'checked' : ''}
-                                               onchange="updateDislivelloDefault('${project.id}', 'finestre', 'presente', false)"
-                                               class="mr-2">
-                                        <span class="text-sm">Nessun dislivello</span>
-                                    </label>
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="dislivelloFinestre-${project.id}" value="si"
-                                               ${project.caratteristicheMuro?.dislivelloPianaFinestre?.presente ? 'checked' : ''}
-                                               onchange="updateDislivelloDefault('${project.id}', 'finestre', 'presente', true)"
-                                               class="mr-2">
-                                        <span class="text-sm">Dislivello presente</span>
-                                    </label>
-                                </div>
+                                <label class="block text-xs font-medium mb-1">C'è dislivello?</label>
+                                <select onchange="updateDislivelloDefault('${project.id}', 'finestre', 'presente', this.value === 'si'); document.getElementById('dislivelloFinestreFields-${project.id}').style.display = this.value === 'si' ? 'block' : 'none';"
+                                        class="w-full md:w-1/2 px-3 py-2 border rounded-lg">
+                                    <option value="">Seleziona...</option>
+                                    <option value="si" ${project.caratteristicheMuro?.dislivelloPianaFinestre?.presente === true ? 'selected' : ''}>Sì</option>
+                                    <option value="no" ${project.caratteristicheMuro?.dislivelloPianaFinestre?.presente === false ? 'selected' : ''}>No</option>
+                                </select>
                             </div>
                             
                             <div id="dislivelloFinestreFields-${project.id}" 
-                                 style="display: ${project.caratteristicheMuro?.dislivelloPianaFinestre?.presente ? 'block' : 'none'}">
+                                 style="display: ${project.caratteristicheMuro?.dislivelloPianaFinestre?.presente === true ? 'block' : 'none'}">
                                 <div class="space-y-2">
                                     <div>
                                         <label class="block text-xs font-medium mb-1">Piana più alta:</label>
@@ -11424,32 +11414,22 @@ function renderStep2Products(project) {
                         </div>
                     </div>
                     
-                    <!-- ✅ NUOVO: Dislivello Piana DEFAULT PORTE-FINESTRE (PF) -->
+                    <!-- ✅ Dislivello Piana DEFAULT PORTE-FINESTRE (PF) -->
                     <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg mt-4">
                         <h3 class="text-sm font-bold text-amber-800 mb-3">📐 Dislivello Piana - PORTE-FINESTRE (PF) - Default</h3>
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-xs font-medium mb-2">C'è dislivello?</label>
-                                <div class="flex gap-4">
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="dislivelloPF-${project.id}" value="no"
-                                               ${!project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente ? 'checked' : ''}
-                                               onchange="updateDislivelloDefault('${project.id}', 'porteFinestre', 'presente', false)"
-                                               class="mr-2">
-                                        <span class="text-sm">Nessun dislivello</span>
-                                    </label>
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="dislivelloPF-${project.id}" value="si"
-                                               ${project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente ? 'checked' : ''}
-                                               onchange="updateDislivelloDefault('${project.id}', 'porteFinestre', 'presente', true)"
-                                               class="mr-2">
-                                        <span class="text-sm">Dislivello presente</span>
-                                    </label>
-                                </div>
+                                <label class="block text-xs font-medium mb-1">C'è dislivello?</label>
+                                <select onchange="updateDislivelloDefault('${project.id}', 'porteFinestre', 'presente', this.value === 'si'); document.getElementById('dislivelloPFFields-${project.id}').style.display = this.value === 'si' ? 'block' : 'none';"
+                                        class="w-full md:w-1/2 px-3 py-2 border rounded-lg">
+                                    <option value="">Seleziona...</option>
+                                    <option value="si" ${project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente === true ? 'selected' : ''}>Sì</option>
+                                    <option value="no" ${project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente === false ? 'selected' : ''}>No</option>
+                                </select>
                             </div>
                             
                             <div id="dislivelloPFFields-${project.id}" 
-                                 style="display: ${project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente ? 'block' : 'none'}">
+                                 style="display: ${project.caratteristicheMuro?.dislivelloPianaPorteFinestre?.presente === true ? 'block' : 'none'}">
                                 <div class="space-y-2">
                                     <div>
                                         <label class="block text-xs font-medium mb-1">Piana più alta:</label>
@@ -22813,7 +22793,6 @@ window.updateMisureGlobaliInfissi = (projectId, field, value) => {
             project.misureGlobaliInfissi = {
                 LVT: '', HVT: '', LF: '', HF: '', 
                 TMV: '', HMT: '', LVAR: '', HVAR: '',
-                DeltaINT: '', DeltaEST: '',
                 HSoffitto: '', HParapettoSoffitto: '', HPavimentoParapetto: ''
             };
         }
@@ -23244,8 +23223,6 @@ window.exportAllProjectsExcel = () => {
                     'HMT (mm)': pos.misure?.HMT || '',
                     'L4 (mm)': pos.misure?.L4 || '',
                     'H4 (mm)': pos.misure?.H4 || '',
-                    'Delta INT (mm)': pos.misure?.DeltaINT || '',
-                    'Delta EST (mm)': pos.misure?.DeltaEST || '',
                     
                     // Rilievo - 🔄 v5.743: Sistema 3 stati (si/no/null → SI/NO/?) + note coprifili
                     'Da Togliere': pos.rilievo?.togliere === 'si' ? 'SI' : (pos.rilievo?.togliere === 'no' ? 'NO' : '?'),
@@ -23477,8 +23454,6 @@ window.exportCurrentProjectExcel = () => {
                 'HMT': pos.misure?.HMT || '',
                 'L4': pos.misure?.L4 || '',
                 'H4': pos.misure?.H4 || '',
-                'Delta INT': pos.misure?.DeltaINT || '',
-                'Delta EST': pos.misure?.DeltaEST || '',
                 'H Soffitto': pos.misure?.HSoffitto || '',
                 'H Parapetto Soffitto': pos.misure?.HParapettoSoffitto || '',
                 'H Pavimento Parapetto': pos.misure?.HPavimentoParapetto || '',
