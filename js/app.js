@@ -11289,38 +11289,21 @@ function renderStep2Products(project) {
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium mb-1">Guida Esistente?</label>
-                        <select id="guida-select-${project.id}" 
-                                onchange="updateGuidaEsistente('${project.id}', this.value)"
-                                class="w-full md:w-1/2 px-3 py-2 border rounded-lg">
-                            <option value="">Seleziona...</option>
-                            <option value="si" ${project.caratteristicheMuro?.guidaEsistente === 'si' ? 'selected' : ''}>Sì</option>
-                            <option value="no" ${project.caratteristicheMuro?.guidaEsistente === 'no' ? 'selected' : ''}>No</option>
-                        </select>
-                    </div>
-                    
-                    <div id="guida-fields-${project.id}" style="display: ${project.caratteristicheMuro?.guidaEsistente === 'si' ? 'block' : 'none'}">
-                        <div class="grid grid-cols-3 gap-3 bg-green-50 p-3 rounded">
-                            <div>
-                                <label class="block text-xs font-medium text-green-700 mb-1">Prof. Distanziale</label>
-                                <input type="number" placeholder="0"
-                                       value="${project.caratteristicheMuro?.profDistanziale || ''}"
-                                       onchange="updateCaratteristicheMuro('${project.id}', 'profDistanziale', this.value)"
-                                       class="w-full px-2 py-1 border rounded text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-green-700 mb-1">Prof. Guida</label>
-                                <input type="number" placeholder="0"
-                                       value="${project.caratteristicheMuro?.profGuida || ''}"
-                                       onchange="updateCaratteristicheMuro('${project.id}', 'profGuida', this.value)"
-                                       class="w-full px-2 py-1 border rounded text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-green-700 mb-1">Largh. Guida</label>
-                                <input type="number" placeholder="0"
-                                       value="${project.caratteristicheMuro?.larghezzaGuida || ''}"
-                                       onchange="updateCaratteristicheMuro('${project.id}', 'larghezzaGuida', this.value)"
-                                       class="w-full px-2 py-1 border rounded text-sm">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   ${project.caratteristicheMuro?.telaioLateraleDiverso ? 'checked' : ''}
+                                   onchange="updateCaratteristicheMuro('${project.id}', 'telaioLateraleDiverso', this.checked); document.getElementById('telaioLatExtraFields-${project.id}').style.display = this.checked ? 'block' : 'none';"
+                                   class="mr-2 w-4 h-4">
+                            <span class="text-sm font-medium">Telaio laterale ≠ sotto/sopra (spessore maggiorato)</span>
+                        </label>
+                        <div id="telaioLatExtraFields-${project.id}" 
+                             style="display: ${project.caratteristicheMuro?.telaioLateraleDiverso ? 'block' : 'none'}">
+                            <div class="bg-green-50 p-3 rounded mt-2">
+                                <label class="block text-xs font-medium text-green-700 mb-1">Spessore extra laterale (mm)</label>
+                                <input type="number" placeholder="0" min="0"
+                                       value="${project.caratteristicheMuro?.spessoreExtraLaterale || ''}"
+                                       onchange="updateCaratteristicheMuro('${project.id}', 'spessoreExtraLaterale', this.value)"
+                                       class="w-32 px-2 py-1 border rounded text-sm">
                             </div>
                         </div>
                     </div>
