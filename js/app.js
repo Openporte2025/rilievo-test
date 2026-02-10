@@ -937,6 +937,20 @@ function migrateOldData() {
                 pos.cassonetto = pos.cassonetti[0];
                 delete pos.cassonetti;
             }
+            
+            // 🆕 v6.01: Auto-aggiunge motore se serveMotore=true e motori vuoti
+            if (pos.tapparella && pos.tapparella.serveMotore && 
+                (!pos.tapparella.motori || pos.tapparella.motori.length === 0)) {
+                const configDefault = project.configTapparelle || {};
+                pos.tapparella.motori = [{
+                    modelloId: configDefault.motoreModelloDefault || '',
+                    comandoId: configDefault.comandoDefault || '',
+                    accessori: configDefault.accessoriMotoreDefault ? {...configDefault.accessoriMotoreDefault} : {},
+                    modelloManuale: '',
+                    note: ''
+                }];
+                console.log(`🔌 v6.01: Auto-aggiunto Motore 1 a posizione ${pos.name || pos.id}`);
+            }
         });
     });
     
@@ -3066,21 +3080,31 @@ function normalizzaPersiana(pers, project) {
 
 // 🆕 v5.703: Normalizza tapparella con azienda obbligatoria
 function normalizzaTapparella(tapp, project) {
+    const serveMotore = tapp.serveMotore ?? project.configTapparelle?.serveMotore ?? false;
+    const configDefault = project.configTapparelle || {};
     return {
         id: generateId(),
         qta: tapp.qta || tapp.quantita || '1',
-        azienda: tapp.azienda || project.configTapparelle?.azienda || 'Plasticino',
-        modello: tapp.modello || project.configTapparelle?.modello || '',
-        tipologia: tapp.tipologia || project.configTapparelle?.tipologia || '',
-        colore: tapp.colore || project.configTapparelle?.colore || '',
-        guida: tapp.guida || project.configTapparelle?.guida || '',
-        coloreGuida: tapp.coloreGuida || project.configTapparelle?.coloreGuida || '',
+        azienda: tapp.azienda || configDefault.azienda || 'Plasticino',
+        modello: tapp.modello || configDefault.modello || '',
+        tipologia: tapp.tipologia || configDefault.tipologia || '',
+        colore: tapp.colore || configDefault.colore || '',
+        guida: tapp.guida || configDefault.guida || '',
+        coloreGuida: tapp.coloreGuida || configDefault.coloreGuida || '',
         manualeMot: tapp.manualeMot || 'Manuale',
         motoreAzienda: tapp.motoreAzienda || 'Somfy',
         motoreModello: tapp.motoreModello || '',
         BRM_L: parseInt(tapp.BRM_L) || parseInt(tapp.brm?.L) || 0,
         BRM_H: parseInt(tapp.BRM_H) || parseInt(tapp.brm?.H) || 0,
-        note: tapp.note || ''
+        note: tapp.note || '',
+        // 🆕 v6.01: Auto-aggiunge motore se serveMotore e nessun motore già presente
+        motori: tapp.motori || (serveMotore ? [{
+            modelloId: configDefault.motoreModelloDefault || '',
+            comandoId: configDefault.comandoDefault || '',
+            accessori: configDefault.accessoriMotoreDefault ? {...configDefault.accessoriMotoreDefault} : {},
+            modelloManuale: '',
+            note: ''
+        }] : [])
     };
 }
 
@@ -8584,7 +8608,15 @@ function addTapparella(projectId, posId) {
                 BRM_L: brm.L,
                 BRM_H: brm.H,
                 note: '',
-                foto: []
+                foto: [],
+                // 🆕 v6.01: Auto-aggiunge motore se serveMotore è attivo nel config
+                motori: (project.configTapparelle?.serveMotore) ? [{
+                    modelloId: project.configTapparelle?.motoreModelloDefault || '',
+                    comandoId: project.configTapparelle?.comandoDefault || '',
+                    accessori: project.configTapparelle?.accessoriMotoreDefault ? {...project.configTapparelle.accessoriMotoreDefault} : {},
+                    modelloManuale: '',
+                    note: ''
+                }] : []
             };
             saveState();
             render();
