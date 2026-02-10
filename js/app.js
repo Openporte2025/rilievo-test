@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 📋 v6.01: Wizard IVA/Detrazioni in scheda cliente + initWizardIVARilievo() (10 FEB 2026)
 // 🔧 v5.97: AMBIENTI da OPZIONI + BRM tapparelle/zanzariere→renderBRMPosizione (06 FEB 2026)
 // 🔧 v5.96: Step 5+6+7+Posizioni usano CAMPI_PRODOTTI + renderBRMPosizione (06 FEB 2026)
 // 🔧 v5.95: Alias OPZIONI.* → OPZIONI_PRODOTTI (unica fonte) (05 FEB 2026)
@@ -10912,12 +10913,40 @@ function renderStep1ClientData(project) {
                     onChangeCallback: 'updateClienteField',
                     idPrefix: 'rilievo-' + project.id
                 })}
+                
+                <!-- 🆕 v6.01: Wizard IVA/Detrazioni -->
+                <div id="wizardIVA_rilievo_${project.id}" style="margin-top: 12px;"></div>
             </div>
         `;
     }
     
     // Fallback se UI_FORMS non caricato
     return renderStep1ClientDataLegacy(project);
+}
+
+// 🆕 v6.01: Init wizard IVA dopo render step 1
+function initWizardIVARilievo(projectId) {
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const containerId = 'wizardIVA_rilievo_' + projectId;
+    const container = document.getElementById(containerId);
+    if (!container || container.dataset.wizInit) return;
+    
+    if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI) {
+        const saved = project.ivaDetrazioni || {};
+        window._wizardIVARilievo = OPZIONI.IVA_DETRAZIONI.renderWizardIVA(containerId, saved, {
+            compact: false,
+            onChange: function(dati) {
+                project.ivaDetrazioni = dati;
+                if (project.immobile) {
+                    project.immobile.ivaDetrazioni = dati;
+                }
+                saveState();
+            }
+        });
+        container.dataset.wizInit = '1';
+    }
 }
 
 // 🔄 Fallback legacy se UI_FORMS non disponibile
@@ -23992,6 +24021,11 @@ function render() {
     
     // 🆕 v5.704: Aggiorna visibilità FAB Import Posizioni
     updateFabVisibility();
+    
+    // 🆕 v6.01: Init wizard IVA se siamo su step 1 (Dati Cliente)
+    if (state.screen === 'setup' && state.setupStep === 1 && state.currentProject) {
+        setTimeout(() => initWizardIVARilievo(state.currentProject), 100);
+    }
 }
 
 // Navigation function for setup steps
