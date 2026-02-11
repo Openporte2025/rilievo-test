@@ -12458,8 +12458,7 @@ function renderStep3ConfigInfissi(project) {
                         <div>
                             <label class="block text-sm font-bold mb-1 text-gray-700">Tipo Anta</label>
                             <select onchange="updateConfigInfissi('${project.id}', 'antaTwinModello', this.value)"
-                                    class="w-full px-3 py-2 border-2 border-cyan-300 rounded-lg bg-white font-medium"
-                                    ${!project.configInfissi?.antaTwinTipo ? 'disabled' : ''}>
+                                    class="w-full px-3 py-2 border-2 border-cyan-300 rounded-lg bg-white font-medium">
                                 <option value="">Seleziona...</option>
                                 ${typeof generateTwinOptions === 'function' ? generateTwinOptions('getAntaTwinModelli', project.configInfissi || {}, project.configInfissi?.antaTwinModello) : ''}
                             </select>
