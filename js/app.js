@@ -12461,8 +12461,8 @@ function renderStep3ConfigInfissi(project) {
                                     class="w-full px-3 py-2 border-2 border-cyan-300 rounded-lg bg-white font-medium"
                                     ${!project.configInfissi?.antaTwinTipo ? 'disabled' : ''}>
                                 <option value="">Seleziona...</option>
-                                ${Object.entries(FINSTRAL_ANTA_TWIN.tipiAnta).map(([key, val]) => 
-                                    `<option value="${key}" ${project.configInfissi?.antaTwinModello === key ? 'selected' : ''}>${val.cod} - ${val.desc}</option>`
+                                ${Object.entries(FINSTRAL_ANTA_TWIN.tipiAnta).map(([code, model]) => 
+                                    `<option value="${code}" ${project.configInfissi?.antaTwinModello === code ? 'selected' : ''}>${model.desc}</option>`
                                 ).join('')}
                             </select>
                         </div>
@@ -18228,31 +18228,33 @@ function renderInfissiTab(project, pos) {
                         <h5 class="font-bold text-purple-800 mb-3 flex items-center gap-2">
                             🎚️ 15. Anta Twin - Veneziana/Plissettata
                         </h5>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold mb-1 text-gray-600">Tipo</label>
-                                <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinTipo', this.value); render();"
-                                        class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
-                                    <option value="" ${!inf.antaTwinTipo ? 'selected' : ''}>-- Nessuno --</option>
-                                    <option value="veneziana" ${inf.antaTwinTipo === 'veneziana' ? 'selected' : ''}>🪟 Veneziana</option>
-                                    <option value="plissettata" ${inf.antaTwinTipo === 'plissettata' ? 'selected' : ''}>🎚️ Plissettata</option>
-                                </select>
-                            </div>
-                            ${inf.antaTwinTipo ? `
-                            <div>
-                                <label class="block text-xs font-bold mb-1 text-gray-600">Modello</label>
-                                <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinModello', this.value)"
-                                        class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
-                                    <option value="">-- Seleziona --</option>
-                                    ${Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.tipiAnta ? FINSTRAL_ANTA_TWIN.tipiAnta : {}).map(([key, val]) =>
-                                        `<option value="${key}" ${inf.antaTwinModello === key ? 'selected' : ''}>${val.cod} - ${val.desc}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            ` : ''}
+                        
+                        <!-- 1️⃣ MODELLO (PRIMO) -->
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold mb-1 text-gray-600">Modello</label>
+                            <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinModello', this.value)"
+                                    class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
+                                <option value="">-- Seleziona --</option>
+                                ${Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.tipiAnta ? FINSTRAL_ANTA_TWIN.tipiAnta : {}).map(([code, model]) =>
+                                    `<option value="${code}" ${inf.antaTwinModello === code ? 'selected' : ''}>${model.desc}</option>`
+                                ).join('')}
+                            </select>
                         </div>
+                        
+                        <!-- 2️⃣ TIPO (SECONDO) -->
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold mb-1 text-gray-600">Tipo Oscurante</label>
+                            <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinTipo', this.value); render();"
+                                    class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
+                                <option value="" ${!inf.antaTwinTipo ? 'selected' : ''}>-- Nessuno --</option>
+                                <option value="veneziana" ${inf.antaTwinTipo === 'veneziana' ? 'selected' : ''}>🪟 Veneziana</option>
+                                <option value="plissettata" ${inf.antaTwinTipo === 'plissettata' ? 'selected' : ''}>🎚️ Plissettata</option>
+                            </select>
+                        </div>
+                        
                         ${inf.antaTwinTipo ? `
-                        <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- 3️⃣ COLORE (TERZO) -->
                             <div>
                                 <label class="block text-xs font-bold mb-1 text-gray-600">Colore ${inf.antaTwinTipo === 'veneziana' ? 'Veneziana' : 'Plissettata'}</label>
                                 <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinColore', this.value)"
@@ -18269,6 +18271,7 @@ function renderInfissiTab(project, pos) {
                                     }
                                 </select>
                             </div>
+                            <!-- 4️⃣ COMANDO (QUARTO) -->
                             <div>
                                 <label class="block text-xs font-bold mb-1 text-gray-600">Comando</label>
                                 <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinComando', this.value)"
