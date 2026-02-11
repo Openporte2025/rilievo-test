@@ -12461,9 +12461,7 @@ function renderStep3ConfigInfissi(project) {
                                     class="w-full px-3 py-2 border-2 border-cyan-300 rounded-lg bg-white font-medium"
                                     ${!project.configInfissi?.antaTwinTipo ? 'disabled' : ''}>
                                 <option value="">Seleziona...</option>
-                                ${Object.entries(FINSTRAL_ANTA_TWIN.tipiAnta).map(([code, model]) => 
-                                    `<option value="${code}" ${project.configInfissi?.antaTwinModello === code ? 'selected' : ''}>${model.desc}</option>`
-                                ).join('')}
+                                ${typeof generateTwinOptions === 'function' ? generateTwinOptions('getAntaTwinModelli', project.configInfissi || {}, project.configInfissi?.antaTwinModello) : ''}
                             </select>
                         </div>
                     </div>
@@ -18235,9 +18233,7 @@ function renderInfissiTab(project, pos) {
                             <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinModello', this.value)"
                                     class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
                                 <option value="">-- Seleziona --</option>
-                                ${Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.tipiAnta ? FINSTRAL_ANTA_TWIN.tipiAnta : {}).map(([code, model]) =>
-                                    `<option value="${code}" ${inf.antaTwinModello === code ? 'selected' : ''}>${model.desc}</option>`
-                                ).join('')}
+                                ${typeof generateTwinOptions === 'function' ? generateTwinOptions('getAntaTwinModelli', inf || {}, inf.antaTwinModello) : ''}
                             </select>
                         </div>
                         
@@ -18252,39 +18248,36 @@ function renderInfissiTab(project, pos) {
                             </select>
                         </div>
                         
-                        <!-- 3️⃣ & 4️⃣ COLORE e COMANDO (sempre visibili) -->
+                        ${inf.antaTwinTipo ? `
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- 3️⃣ COLORE -->
+                            <!-- 3️⃣ COLORE (TERZO) -->
                             <div>
-                                <label class="block text-xs font-bold mb-1 text-gray-600">Colore ${inf.antaTwinTipo === 'veneziana' ? 'Veneziana' : inf.antaTwinTipo === 'plissettata' ? 'Plissettata' : 'Oscurante'}</label>
+                                <label class="block text-xs font-bold mb-1 text-gray-600">Colore ${inf.antaTwinTipo === 'veneziana' ? 'Veneziana' : 'Plissettata'}</label>
                                 <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinColore', this.value)"
                                         class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
-                                    <option value="">-- Seleziona tipo prima --</option>
+                                    <option value="">-- Seleziona --</option>
                                     ${inf.antaTwinTipo === 'veneziana' ? 
                                         Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.coloriVeneziana ? FINSTRAL_ANTA_TWIN.coloriVeneziana : {}).map(([cod, info]) =>
                                             `<option value="${cod}" ${inf.antaTwinColore === cod ? 'selected' : ''}>${cod} - ${info.nome}</option>`
                                         ).join('')
-                                    : inf.antaTwinTipo === 'plissettata' ?
+                                        :
                                         Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.coloriPlissettata ? FINSTRAL_ANTA_TWIN.coloriPlissettata : {}).map(([cod, info]) =>
                                             `<option value="${cod}" ${inf.antaTwinColore === cod ? 'selected' : ''}>${cod} - ${info.nome}</option>`
                                         ).join('')
-                                    : ''
                                     }
                                 </select>
                             </div>
-                            <!-- 4️⃣ COMANDO -->
+                            <!-- 4️⃣ COMANDO (QUARTO) -->
                             <div>
                                 <label class="block text-xs font-bold mb-1 text-gray-600">Comando</label>
                                 <select onchange="updateProduct('${project.id}', '${pos.id}', 'infisso', 'antaTwinComando', this.value)"
                                         class="w-full px-2 py-1 border-2 border-purple-300 rounded text-sm">
-                                    <option value="">-- Seleziona --</option>
                                     ${Object.entries(typeof FINSTRAL_ANTA_TWIN !== 'undefined' && FINSTRAL_ANTA_TWIN.comandi ? FINSTRAL_ANTA_TWIN.comandi : {}).map(([cod, info]) =>
                                         `<option value="${cod}" ${inf.antaTwinComando === cod ? 'selected' : ''}>${info.desc}${info.supplemento > 0 ? ' (+€' + info.supplemento + ')' : ''}</option>`
                                     ).join('')}
                                 </select>
                             </div>
                         </div>
-                        ${inf.antaTwinModello && inf.antaTwinTipo ? `
                         <div class="mt-2 text-xs text-purple-700 bg-purple-100 p-2 rounded">
                             💡 ${inf.antaTwinModello || ''} ${inf.antaTwinColore || ''} - ${inf.antaTwinTipo === 'veneziana' ? 'Lamelle 25mm' : 'Tenda Plissettata'}
                         </div>
