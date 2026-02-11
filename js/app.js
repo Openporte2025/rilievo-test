@@ -10908,14 +10908,11 @@ function renderStep1ClientData(project) {
                            placeholder="Es: Appartamento Via Roma">
                 </div>
                 
-                <!-- Form Cliente da UI_FORMS -->
+                <!-- Form Cliente da UI_FORMS (include div per wizard IVA) -->
                 ${UI_FORMS.renderFormCliente(cliente, immobile, {
                     onChangeCallback: 'updateClienteField',
                     idPrefix: 'rilievo-' + project.id
                 })}
-                
-                <!-- 🆕 v6.01: Wizard IVA/Detrazioni -->
-                <div id="wizardIVA_rilievo_${project.id}" style="margin-top: 12px;"></div>
             </div>
         `;
     }
@@ -10929,19 +10926,19 @@ function initWizardIVARilievo(projectId) {
     const project = state.projects.find(p => p.id === projectId);
     if (!project) return;
     
-    const containerId = 'wizardIVA_rilievo_' + projectId;
+    // Il div è generato da UI_FORMS con prefix 'rilievo-{projectId}'
+    const containerId = 'rilievo-' + projectId + '-wizardIVA';
     const container = document.getElementById(containerId);
     if (!container || container.dataset.wizInit) return;
     
     if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI) {
-        const saved = project.ivaDetrazioni || {};
+        const saved = project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {};
         window._wizardIVARilievo = OPZIONI.IVA_DETRAZIONI.renderWizardIVA(containerId, saved, {
             compact: false,
             onChange: function(dati) {
                 project.ivaDetrazioni = dati;
-                if (project.immobile) {
-                    project.immobile.ivaDetrazioni = dati;
-                }
+                if (!project.immobile) project.immobile = {};
+                project.immobile.ivaDetrazioni = dati;
                 saveState();
             }
         });
