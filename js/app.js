@@ -24048,14 +24048,20 @@ function render() {
     updateFabVisibility();
     
     // 🆕 v6.03: Init wizard IVA se siamo su step 1 (Dati Cliente)
+    // Usa setInterval per sopravvivere ai re-render del debounce
     if (state.screen === 'setup' && state.setupStep === 1 && state.currentProject) {
-        const pid = state.currentProject;
-        const doInit = () => {
+        if (window._wizIVAInterval) clearInterval(window._wizIVAInterval);
+        window._wizIVAInterval = setInterval(() => {
+            const pid = state.currentProject;
+            if (!pid || state.setupStep !== 1) { clearInterval(window._wizIVAInterval); return; }
             const el = document.getElementById('rilievo-' + pid + '-wizardIVA');
-            if (el && !el.children.length) initWizardIVARilievo(pid);
-        };
-        requestAnimationFrame(() => requestAnimationFrame(doInit));
-        setTimeout(doInit, 800);
+            if (el && !el.children.length) {
+                initWizardIVARilievo(pid);
+            }
+            if (el && el.children.length) clearInterval(window._wizIVAInterval);
+        }, 300);
+    } else {
+        if (window._wizIVAInterval) clearInterval(window._wizIVAInterval);
     }
 }
 
