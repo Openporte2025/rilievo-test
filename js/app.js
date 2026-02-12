@@ -24049,7 +24049,13 @@ function render() {
     
     // 🆕 v6.03: Init wizard IVA se siamo su step 1 (Dati Cliente)
     if (state.screen === 'setup' && state.setupStep === 1 && state.currentProject) {
-        setTimeout(() => initWizardIVARilievo(state.currentProject), 500);
+        const pid = state.currentProject;
+        const doInit = () => {
+            const el = document.getElementById('rilievo-' + pid + '-wizardIVA');
+            if (el && !el.children.length) initWizardIVARilievo(pid);
+        };
+        requestAnimationFrame(() => requestAnimationFrame(doInit));
+        setTimeout(doInit, 800);
     }
 }
 
