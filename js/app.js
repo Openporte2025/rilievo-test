@@ -24045,9 +24045,19 @@ function render() {
     // 🆕 v5.704: Aggiorna visibilità FAB Import Posizioni
     updateFabVisibility();
     
-    // 🆕 v6.01: Init wizard IVA se siamo su step 1 (Dati Cliente)
+    // 🆕 v6.03: Init wizard IVA se siamo su step 1 (Dati Cliente) - retry fino a 1s
     if (state.screen === 'setup' && state.setupStep === 1 && state.currentProject) {
-        setTimeout(() => initWizardIVARilievo(state.currentProject), 100);
+        const tryInit = (attempts) => {
+            if (attempts <= 0) return;
+            const pid = state.currentProject;
+            const el = document.getElementById('rilievo-' + pid + '-wizardIVA');
+            if (el && !el.dataset.wizInit) {
+                initWizardIVARilievo(pid);
+            } else if (!el) {
+                setTimeout(() => tryInit(attempts - 1), 200);
+            }
+        };
+        setTimeout(() => tryInit(5), 150);
     }
 }
 
