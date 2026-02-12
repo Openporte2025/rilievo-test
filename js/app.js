@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 📋 v6.03: Indirizzo Residenza separato + salvataggio clientData esteso (12 FEB 2026)
+// 📋 v6.02: Campo unico "Nome Completo" cliente + Wizard IVA in Dati Fiscali (12 FEB 2026)
 // 📋 v6.01: Wizard IVA/Detrazioni in scheda cliente + initWizardIVARilievo() (10 FEB 2026)
 // 🔧 v5.97: AMBIENTI da OPZIONI + BRM tapparelle/zanzariere→renderBRMPosizione (06 FEB 2026)
 // 🔧 v5.96: Step 5+6+7+Posizioni usano CAMPI_PRODOTTI + renderBRMPosizione (06 FEB 2026)
@@ -702,6 +704,7 @@ function cleanCorruptedProjects() {
         // Controlla nome valido (almeno uno dei tre)
         const hasValidName = (project.name && project.name !== 'undefined' && project.name.trim()) ||
                             (project.client && project.client !== 'undefined' && project.client.trim()) ||
+                            (project.clientData?.nomeCompleto && project.clientData.nomeCompleto.trim()) ||
                             (project.clientData?.nome && project.clientData.nome !== 'undefined' && project.clientData.nome.trim());
         
         // Se progetto corrotto, logga e rimuovi
@@ -4825,6 +4828,7 @@ async function uploadSingleProjectToGitHub(project) {
         // ✅ VALIDAZIONE MINIMA: Richiede solo nome/cliente (progetti vuoti OK per schede pre-cantiere)
         const hasValidName = (project.name && project.name.trim()) || 
                              (project.client && project.client.trim()) || 
+                             (project.clientData?.nomeCompleto && project.clientData.nomeCompleto.trim()) ||
                              (project.clientData?.nome && project.clientData.nome.trim());
 
         if (!hasValidName) {
@@ -4869,10 +4873,18 @@ async function uploadSingleProjectToGitHub(project) {
             
             // DATI CLIENTE COMPLETI
             clientData: {
+                nomeCompleto: updatedProject.clientData?.nomeCompleto || updatedProject.client || '',
                 nome: updatedProject.clientData?.nome || '',
                 cognome: updatedProject.clientData?.cognome || '',
+                codiceFiscale: updatedProject.clientData?.codiceFiscale || '',
                 telefono: updatedProject.clientData?.telefono || '',
                 email: updatedProject.clientData?.email || '',
+                // Indirizzo Residenza
+                residenzaIndirizzo: updatedProject.clientData?.residenzaIndirizzo || '',
+                residenzaComune: updatedProject.clientData?.residenzaComune || '',
+                residenzaProvincia: updatedProject.clientData?.residenzaProvincia || '',
+                residenzaCap: updatedProject.clientData?.residenzaCap || '',
+                // Indirizzo Lavori (in immobile)
                 indirizzo: updatedProject.clientData?.indirizzo || '',
                 citta: updatedProject.clientData?.citta || '',
                 cap: updatedProject.clientData?.cap || '',
@@ -10884,11 +10896,13 @@ function renderStep1ClientData(project) {
     if (typeof UI_FORMS !== 'undefined') {
         // Prepara dati cliente (compatibilità vecchio/nuovo formato)
         const cliente = project.cliente || project.clientData || {};
-        // Separa nome/cognome se c'è solo "client"
-        if (!cliente.nome && !cliente.cognome && project.client) {
-            const parts = project.client.split(' ');
-            cliente.nome = parts[0] || '';
-            cliente.cognome = parts.slice(1).join(' ') || '';
+        // 🆕 v6.02: Campo unico nomeCompleto - retrocompatibilità con nome+cognome separati
+        if (!cliente.nomeCompleto) {
+            if (cliente.nome || cliente.cognome) {
+                cliente.nomeCompleto = `${cliente.nome || ''} ${cliente.cognome || ''}`.trim();
+            } else if (project.client) {
+                cliente.nomeCompleto = project.client;
+            }
         }
         
         const immobile = project.immobile || {};
@@ -10964,9 +10978,10 @@ function renderStep1ClientDataLegacy(project) {
                     <label class="block text-sm font-medium mb-1">
                         Cliente <span style="color: #ef4444; font-weight: 700;">*</span>
                     </label>
-                    <input type="text" value="${project.client}" 
-                           onchange="updateProject('${project.id}', 'client', this.value)"
+                    <input type="text" value="${project.clientData?.nomeCompleto || project.client || ''}" 
+                           onchange="updateProject('${project.id}', 'client', this.value); if(this.closest) { const p = state.projects.find(pp=>pp.id==='${project.id}'); if(p) { if(!p.clientData) p.clientData={}; p.clientData.nomeCompleto=this.value; saveState(); } }"
                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                           placeholder="Nome e Cognome"
                            required>
                 </div>
                 <div>
@@ -21715,7 +21730,7 @@ window.printChecklistRilievi = (projectId) => {
             <div class="header-info">
                 <h3>Informazioni Progetto</h3>
                 <p><strong>Progetto:</strong> ${project.nome || 'N/A'}</p>
-                <p><strong>Cliente:</strong> ${project.clientData?.nome || 'N/A'}</p>
+                <p><strong>Cliente:</strong> ${project.clientData?.nomeCompleto || project.client || project.clientData?.nome || 'N/A'}</p>
                 <p><strong>Indirizzo:</strong> ${project.clientData?.indirizzo || 'N/A'}</p>
                 <p><strong>Piano:</strong> ${project.clientData?.piano || 'N/A'}</p>
                 <p><strong>Data stampa:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
@@ -21850,11 +21865,24 @@ window.updateClienteField = (field, value, sezione = 'cliente') => {
         project.cliente[field] = value;
         project.clientData[field] = value; // Retrocompatibilità
         
-        // Se aggiorno nome/cognome, aggiorna anche client
-        if (field === 'nome' || field === 'cognome') {
+        // 🆕 v6.02: Campo unico nomeCompleto → aggiorna client + retrocompatibilità nome/cognome
+        if (field === 'nomeCompleto') {
+            project.client = value.trim();
+            project.clientData.nomeCompleto = value;
+            // Retrocompatibilità: split in nome+cognome
+            const parts = value.trim().split(' ');
+            project.cliente.nome = parts[0] || '';
+            project.cliente.cognome = parts.slice(1).join(' ') || '';
+            project.clientData.nome = project.cliente.nome;
+            project.clientData.cognome = project.cliente.cognome;
+        }
+        // Retrocompatibilità: se qualcuno chiama ancora con nome/cognome separati
+        else if (field === 'nome' || field === 'cognome') {
             const nome = project.cliente.nome || '';
             const cognome = project.cliente.cognome || '';
             project.client = `${nome} ${cognome}`.trim();
+            project.cliente.nomeCompleto = project.client;
+            project.clientData.nomeCompleto = project.client;
         }
         
         console.log(`👤 Cliente.${field} = ${value}`);
