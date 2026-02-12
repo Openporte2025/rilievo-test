@@ -10940,7 +10940,6 @@ function initWizardIVARilievo(projectId) {
     const project = state.projects.find(p => p.id === projectId);
     if (!project) return;
     
-    // Il div è generato da UI_FORMS con prefix 'rilievo-{projectId}'
     const containerId = 'rilievo-' + projectId + '-wizardIVA';
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -10950,15 +10949,20 @@ function initWizardIVARilievo(projectId) {
     
     if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI) {
         const saved = project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {};
+        // Flag per bloccare onChange durante init (evita loop render)
+        let initDone = false;
         window._wizardIVARilievo = OPZIONI.IVA_DETRAZIONI.renderWizardIVA(containerId, saved, {
             compact: false,
             onChange: function(dati) {
+                if (!initDone) return; // Blocca durante init
                 project.ivaDetrazioni = dati;
                 if (!project.immobile) project.immobile = {};
                 project.immobile.ivaDetrazioni = dati;
                 saveState();
             }
         });
+        // Sblocca onChange dopo init
+        setTimeout(() => { initDone = true; }, 100);
     }
 }
 
