@@ -12249,7 +12249,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraInt',
                         project.configInfissi?.finituraInt || '',
-                        OPZIONI_PRODOTTI.infissi.finiture,
+                        OPZIONI_PRODOTTI.infissi.finitureInt,
                         project.id,
                         null,
                         'infisso',
@@ -12260,7 +12260,7 @@ function renderStep3ConfigInfissi(project) {
                     ${renderSelectWithCustom(
                         'finituraEst',
                         project.configInfissi?.finituraEst || '',
-                        OPZIONI_PRODOTTI.infissi.finiture,
+                        OPZIONI_PRODOTTI.infissi.finitureEst,
                         project.id,
                         null,
                         'infisso',
@@ -18049,7 +18049,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraInt',
                                 inf.finituraInt || '',
-                                OPZIONI_PRODOTTI.infissi.finiture,
+                                OPZIONI_PRODOTTI.infissi.finitureInt,
                                 project.id,
                                 pos.id,
                                 'infisso',
@@ -18060,7 +18060,7 @@ function renderInfissiTab(project, pos) {
                             ${renderSelectWithCustom(
                                 'finituraEst',
                                 inf.finituraEst || '',
-                                OPZIONI_PRODOTTI.infissi.finiture,
+                                OPZIONI_PRODOTTI.infissi.finitureEst,
                                 project.id,
                                 pos.id,
                                 'infisso',
