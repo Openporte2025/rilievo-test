@@ -10943,7 +10943,10 @@ function initWizardIVARilievo(projectId) {
     // Il div è generato da UI_FORMS con prefix 'rilievo-{projectId}'
     const containerId = 'rilievo-' + projectId + '-wizardIVA';
     const container = document.getElementById(containerId);
-    if (!container || container.dataset.wizInit) return;
+    if (!container) return;
+    
+    // 🆕 v6.03: Sempre re-renderizza (il DOM viene ricreato ad ogni render())
+    container.innerHTML = '';
     
     if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI) {
         const saved = project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {};
@@ -10956,7 +10959,6 @@ function initWizardIVARilievo(projectId) {
                 saveState();
             }
         });
-        container.dataset.wizInit = '1';
     }
 }
 
