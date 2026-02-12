@@ -10927,6 +10927,15 @@ function renderStep1ClientData(project) {
                     onChangeCallback: 'updateClienteField',
                     idPrefix: 'rilievo-' + project.id
                 })}
+                
+                <!-- 🆕 v6.03: Wizard IVA/Detrazioni STATICO (parte del render, non post-DOM) -->
+                ${typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI && OPZIONI.IVA_DETRAZIONI.renderWizardHTML 
+                    ? OPZIONI.IVA_DETRAZIONI.renderWizardHTML('rilievo-' + project.id, project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {}, {
+                        compact: false,
+                        onChangeCallback: 'onWizardIVAChange'
+                      })
+                    : '<div id="rilievo-' + project.id + '-wizardIVA"></div>'
+                }
             </div>
         `;
     }
@@ -10936,6 +10945,17 @@ function renderStep1ClientData(project) {
 }
 
 // 🆕 v6.01: Init wizard IVA dopo render step 1
+// 🆕 v6.03: Callback globale per wizard IVA statico (chiamata da onchange inline)
+window.onWizardIVAChange = function(dati, risultato) {
+    if (!state.currentProject) return;
+    const project = state.projects.find(p => p.id === state.currentProject);
+    if (!project) return;
+    project.ivaDetrazioni = dati;
+    if (!project.immobile) project.immobile = {};
+    project.immobile.ivaDetrazioni = dati;
+    saveState();
+};
+
 function initWizardIVARilievo(projectId) {
     const project = state.projects.find(p => p.id === projectId);
     if (!project) return;
@@ -24051,21 +24071,12 @@ function render() {
     // 🆕 v5.704: Aggiorna visibilità FAB Import Posizioni
     updateFabVisibility();
     
-    // 🆕 v6.03: Init wizard IVA se siamo su step 1 (Dati Cliente)
-    // Usa setInterval per sopravvivere ai re-render del debounce
+    // 🆕 v6.03: Wizard IVA ora è HTML statico nel render - trigga riepilogo iniziale
     if (state.screen === 'setup' && state.setupStep === 1 && state.currentProject) {
-        if (window._wizIVAInterval) clearInterval(window._wizIVAInterval);
-        window._wizIVAInterval = setInterval(() => {
-            const pid = state.currentProject;
-            if (!pid || state.setupStep !== 1) { clearInterval(window._wizIVAInterval); return; }
-            const el = document.getElementById('rilievo-' + pid + '-wizardIVA');
-            if (el && !el.children.length) {
-                initWizardIVARilievo(pid);
-            }
-            if (el && el.children.length) clearInterval(window._wizIVAInterval);
-        }, 300);
-    } else {
-        if (window._wizIVAInterval) clearInterval(window._wizIVAInterval);
+        if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI && OPZIONI.IVA_DETRAZIONI._onWizardChange) {
+            const pfx = 'ivaWiz_rilievo-' + state.currentProject + '_';
+            setTimeout(() => OPZIONI.IVA_DETRAZIONI._onWizardChange(pfx, 'onWizardIVAChange'), 100);
+        }
     }
 }
 
