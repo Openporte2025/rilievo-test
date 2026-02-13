@@ -1592,312 +1592,39 @@ function renderSelectColoreStandard(fieldName, currentValue, finituraValue, proj
     `;
 }
 
-// 🆕 v5.35: Funzioni helper per Config Cassonetti Finstral
+// 🆕 v6.04: Funzioni cassonetti → CASSONETTI_MODULE centralizzato (shared-database)
 function renderSelectCodiceCassonetto(project) {
-    const mat = project.configCassonetti?.materialeCass || '';
-    const current = project.configCassonetti?.codiceCass || '';
-    
-    if (mat === 'PVC') {
-        return `
-            <select onchange="updateConfigCassonetti('${project.id}', 'codiceCass', this.value)"
-                    class="w-full px-3 py-2 border rounded-lg">
-                <option value="">Seleziona codice...</option>
-                <option value="148" ${current === '148' ? 'selected' : ''}>148 - B≤148mm (standard)</option>
-                <option value="148B" ${current === '148B' ? 'selected' : ''}>148B - B 335-600mm</option>
-                <option value="300" ${current === '300' ? 'selected' : ''}>300 - B≤300mm</option>
-                <option value="300B" ${current === '300B' ? 'selected' : ''}>300B - B 335-600mm</option>
-            </select>
-        `;
-    } else if (mat === 'Legno') {
-        return `
-            <select onchange="updateConfigCassonetti('${project.id}', 'codiceCass', this.value)"
-                    class="w-full px-3 py-2 border rounded-lg">
-                <option value="">Seleziona codice...</option>
-                <option value="9-48" ${current === '9-48' ? 'selected' : ''}>9-48 - B≤150mm (L max 2240)</option>
-                <option value="9-48B" ${current === '9-48B' ? 'selected' : ''}>9-48B - B≤600mm (L max 2240)</option>
-            </select>
-        `;
-    }
-    return '<p class="text-gray-400 text-sm py-2">← Seleziona prima materiale</p>';
+    return CASSONETTI_MODULE.renderSelectCodice(project.id, project.configCassonetti?.materialeCass || '', project.configCassonetti?.codiceCass || '');
 }
 
 function renderSelectGruppoColoreCass(project) {
-    const mat = project.configCassonetti?.materialeCass || '';
-    const current = project.configCassonetti?.gruppoColoreCass || '';
-    
-    if (mat === 'PVC') {
-        return `
-            <select onchange="updateConfigCassonetti('${project.id}', 'gruppoColoreCass', this.value); render();"
-                    class="w-full px-3 py-2 border rounded-lg">
-                <option value="">Seleziona gruppo...</option>
-                <option value="bianco" ${current === 'bianco' ? 'selected' : ''}>○ Tonalità Bianco (01,42,45,07,27)</option>
-                <option value="scuri" ${current === 'scuri' ? 'selected' : ''}>● Colori Scuri (06,46,13,19,55)</option>
-            </select>
-        `;
-    } else if (mat === 'Legno') {
-        return `
-            <select onchange="updateConfigCassonetti('${project.id}', 'gruppoColoreCass', this.value); render();"
-                    class="w-full px-3 py-2 border rounded-lg">
-                <option value="">Seleziona gruppo...</option>
-                <option value="legno1" ${current === 'legno1' ? 'selected' : ''}>Gruppo 1 - Abete</option>
-                <option value="legno2+3" ${current === 'legno2+3' ? 'selected' : ''}>Gruppo 2+3 - Rovere (prezzo maggiore)</option>
-            </select>
-        `;
-    }
-    return '<p class="text-gray-400 text-sm py-2">← Seleziona prima materiale</p>';
+    return CASSONETTI_MODULE.renderSelectGruppoColore(project.id, project.configCassonetti?.materialeCass || '', project.configCassonetti?.gruppoColoreCass || '');
 }
 
-// 🆕 v5.54: Funzione per COLORE SPECIFICO cassonetto in CONFIG GLOBALE
 function renderSelectColoreCassGlobal(project) {
-    const gruppo = project.configCassonetti?.gruppoColoreCass || '';
-    const mat = project.configCassonetti?.materialeCass || '';
-    
-    // LOGICA SEMPLICE: se sync ON → legge da infisso, se OFF → legge da coloreCass
-    const syncAttivo = project.configCassonetti?.coloreDaInfisso !== false;
+    const cfg = project.configCassonetti || {};
+    const syncAttivo = cfg.coloreDaInfisso !== false;
     const coloreInfisso = project.configInfissi?.coloreInt || '';
-    const coloreCass = project.configCassonetti?.coloreCass || '';
-    const displayValue = syncAttivo ? coloreInfisso : coloreCass;
-    
-    // Colori PVC da listino Finstral
-    const coloriBianco = [
-        { code: '01', name: '01 - Bianco extraliscio' },
-        { code: '42', name: '42 - Bianco goffrato' },
-        { code: '45', name: '45 - Bianco satinato' },
-        { code: '07', name: '07 - Bianco perla goffrato' },
-        { code: '27', name: '27 - Bianco perla satinato' }
-    ];
-    
-    const coloriScuri = [
-        { code: '06', name: '06 - Grigio' },
-        { code: '46', name: '46 - Grigio seta' },
-        { code: '13', name: '13 - Decoro legno castagno' },
-        { code: '19', name: '19 - Decoro legno rovere' },
-        { code: '55', name: '55 - Decoro legno noce chiaro' }
-    ];
-    
-    // Colori Legno da listino
-    const coloriLegno1 = [
-        { code: '1X01', name: '1X01 - Abete naturale' },
-        { code: '1X03', name: '1X03 - Abete sbiancato bianco' },
-        { code: '1X05', name: '1X05 - Abete sbiancato' },
-        { code: '1X06', name: '1X06 - Abete grigio beige' },
-        { code: '1X07', name: '1X07 - Abete marrone' },
-        { code: '1X08', name: '1X08 - Abete bianco perla' }
-    ];
-    
-    const coloriLegno23 = [
-        { code: '2X01', name: '2X01 - Rovere naturale' },
-        { code: '2X02', name: '2X02 - Rovere oleato naturale' },
-        { code: '3X02', name: '3X02 - Rovere grigio luce' },
-        { code: '3X03', name: '3X03 - Rovere grigio sabbia' },
-        { code: '3X04', name: '3X04 - Rovere grigio quarzo' },
-        { code: '3X05', name: '3X05 - Rovere grigio carbone' },
-        { code: '3X06', name: '3X06 - Rovere marrone scuro' },
-        { code: '3X07', name: '3X07 - Rovere bianco a poro aperto' },
-        { code: '3X08', name: '3X08 - Rovere bianco perla a poro aperto' }
-    ];
-    
-    let colori = [];
-    if (mat === 'PVC') {
-        if (gruppo === 'bianco') colori = coloriBianco;
-        else if (gruppo === 'scuri') colori = coloriScuri;
-    } else if (mat === 'Legno') {
-        if (gruppo === 'legno1') colori = coloriLegno1;
-        else if (gruppo === 'legno2+3') colori = coloriLegno23;
-    }
-    
-    if (colori.length === 0) {
-        return '<p class="text-gray-400 text-sm py-2">← Seleziona prima gruppo colore</p>';
-    }
-    
-    // Se sync attivo, mostra valore ma disabilitato
-    if (syncAttivo) {
-        const coloreObj = colori.find(c => c.code === displayValue);
-        const nomeColore = coloreObj ? coloreObj.name : (displayValue || 'Da serramento');
-        return `
-            <input type="text" 
-                   value="${nomeColore}"
-                   disabled
-                   class="w-full px-3 py-2 border rounded-lg bg-blue-100 text-gray-600">
-        `;
-    }
-    
-    // Se sync disattivo, select editabile
-    let options = '<option value="">Seleziona colore...</option>';
-    colori.forEach(c => {
-        const sel = displayValue === c.code ? 'selected' : '';
-        options += `<option value="${c.code}" ${sel}>${c.name}</option>`;
-    });
-    
-    return `
-        <select onchange="updateConfigCassonetti('${project.id}', 'coloreCass', this.value)"
-                class="w-full px-3 py-2 border rounded-lg">
-            ${options}
-        </select>
-    `;
+    return CASSONETTI_MODULE.renderSelectColore(project.id, cfg.materialeCass || '', cfg.gruppoColoreCass || '', syncAttivo, coloreInfisso, cfg.coloreCass || '');
 }
 
 function renderSelectIsolamentoCass(project) {
     if (!project.configCassonetti?.isolamentoPosaclima) return '';
-    const current = project.configCassonetti?.codiceIsolamento || '';
-    
-    return `
-        <div>
-            <label class="block text-sm font-medium mb-1">10. Codice Isolamento</label>
-            <select onchange="updateConfigCassonetti('${project.id}', 'codiceIsolamento', this.value)"
-                    class="w-full px-3 py-2 border rounded-lg bg-yellow-50">
-                <option value="">Seleziona...</option>
-                <option value="40830" ${current === '40830' ? 'selected' : ''}>40830 - 25mm (+63,1€/pz)</option>
-                <option value="40831" ${current === '40831' ? 'selected' : ''}>40831 - 13mm (+47,4€/pz)</option>
-            </select>
-            <p class="text-xs text-yellow-600 mt-1">Usb: 0,87 W/m²K con isolamento</p>
-        </div>
-    `;
+    return CASSONETTI_MODULE.renderSelectIsolamento(project.id, project.configCassonetti?.codiceIsolamento || '');
 }
 
-// 🆕 v5.35: Funzioni helper per Cassonetto in POSIZIONE SINGOLA
+// 🆕 v6.04: Funzioni cassonetti posizione → CASSONETTI_MODULE
 function renderSelectCodiceCassPos(cas, projectId, posId) {
-    const mat = cas.materialeCass || '';
-    const current = cas.codiceCass || '';
-    
-    if (mat === 'PVC') {
-        return `
-            <select onchange="updateProduct('${projectId}', '${posId}', 'cassonetto', 'codiceCass', this.value)"
-                    class="w-full compact-input border rounded mt-1">
-                <option value="">--</option>
-                <option value="148" ${current === '148' ? 'selected' : ''}>148</option>
-                <option value="148B" ${current === '148B' ? 'selected' : ''}>148B</option>
-                <option value="300" ${current === '300' ? 'selected' : ''}>300</option>
-                <option value="300B" ${current === '300B' ? 'selected' : ''}>300B</option>
-            </select>
-        `;
-    } else if (mat === 'Legno') {
-        return `
-            <select onchange="updateProduct('${projectId}', '${posId}', 'cassonetto', 'codiceCass', this.value)"
-                    class="w-full compact-input border rounded mt-1">
-                <option value="">--</option>
-                <option value="9-48" ${current === '9-48' ? 'selected' : ''}>9-48</option>
-                <option value="9-48B" ${current === '9-48B' ? 'selected' : ''}>9-48B</option>
-            </select>
-        `;
-    }
-    return '<span class="text-xs text-gray-400 mt-1 block">← Materiale</span>';
+    return CASSONETTI_MODULE.renderSelectCodicePos(projectId, posId, cas.materialeCass || '', cas.codiceCass || '');
 }
 
 function renderSelectGruppoColoreCassPos(cas, projectId, posId) {
-    const mat = cas.materialeCass || '';
-    const current = cas.gruppoColoreCass || '';
-    
-    if (mat === 'PVC') {
-        return `
-            <select onchange="updateProduct('${projectId}', '${posId}', 'cassonetto', 'gruppoColoreCass', this.value); render();"
-                    class="w-full compact-input border rounded mt-1">
-                <option value="">--</option>
-                <option value="bianco" ${current === 'bianco' ? 'selected' : ''}>○ Bianco</option>
-                <option value="scuri" ${current === 'scuri' ? 'selected' : ''}>● Scuri</option>
-            </select>
-        `;
-    } else if (mat === 'Legno') {
-        return `
-            <select onchange="updateProduct('${projectId}', '${posId}', 'cassonetto', 'gruppoColoreCass', this.value); render();"
-                    class="w-full compact-input border rounded mt-1">
-                <option value="">--</option>
-                <option value="legno1" ${current === 'legno1' ? 'selected' : ''}>Gr.1 Abete</option>
-                <option value="legno2+3" ${current === 'legno2+3' ? 'selected' : ''}>Gr.2+3 Rovere</option>
-            </select>
-        `;
-    }
-    return '<span class="text-xs text-gray-400 mt-1 block">← Materiale</span>';
+    return CASSONETTI_MODULE.renderSelectGruppoColorePos(projectId, posId, cas.materialeCass || '', cas.gruppoColoreCass || '');
 }
 
-// 🆕 v5.54: Funzione per selezionare COLORE SPECIFICO cassonetto (codice da listino)
 function renderSelectColoreCassPos(cas, pos, projectId, posId) {
-    const gruppo = cas.gruppoColoreCass || '';
-    const mat = cas.materialeCass || '';
-    
-    // LOGICA SEMPLICE: se sync ON → legge da infisso, se OFF → legge da coloreCass
-    const syncAttivo = cas.coloreDaInfisso !== false;
     const coloreInfisso = pos.infisso?.coloreInt || '';
-    const coloreCass = cas.coloreCass || '';
-    const displayValue = syncAttivo ? coloreInfisso : coloreCass;
-    
-    // Colori PVC da listino Finstral
-    const coloriBianco = [
-        { code: '01', name: '01 - Bianco extraliscio' },
-        { code: '42', name: '42 - Bianco goffrato' },
-        { code: '45', name: '45 - Bianco satinato' },
-        { code: '07', name: '07 - Bianco perla goffrato' },
-        { code: '27', name: '27 - Bianco perla satinato' }
-    ];
-    
-    const coloriScuri = [
-        { code: '06', name: '06 - Grigio' },
-        { code: '46', name: '46 - Grigio seta' },
-        { code: '13', name: '13 - Decoro legno castagno' },
-        { code: '19', name: '19 - Decoro legno rovere' },
-        { code: '55', name: '55 - Decoro legno noce chiaro' }
-    ];
-    
-    // Colori Legno da listino
-    const coloriLegno1 = [
-        { code: '1X01', name: '1X01 - Abete naturale' },
-        { code: '1X03', name: '1X03 - Abete sbiancato bianco' },
-        { code: '1X05', name: '1X05 - Abete sbiancato' },
-        { code: '1X06', name: '1X06 - Abete grigio beige' },
-        { code: '1X07', name: '1X07 - Abete marrone' },
-        { code: '1X08', name: '1X08 - Abete bianco perla' }
-    ];
-    
-    const coloriLegno23 = [
-        { code: '2X01', name: '2X01 - Rovere naturale' },
-        { code: '2X02', name: '2X02 - Rovere oleato naturale' },
-        { code: '3X02', name: '3X02 - Rovere grigio luce' },
-        { code: '3X03', name: '3X03 - Rovere grigio sabbia' },
-        { code: '3X04', name: '3X04 - Rovere grigio quarzo' },
-        { code: '3X05', name: '3X05 - Rovere grigio carbone' },
-        { code: '3X06', name: '3X06 - Rovere marrone scuro' },
-        { code: '3X07', name: '3X07 - Rovere bianco a poro aperto' },
-        { code: '3X08', name: '3X08 - Rovere bianco perla a poro aperto' }
-    ];
-    
-    let colori = [];
-    if (mat === 'PVC') {
-        if (gruppo === 'bianco') colori = coloriBianco;
-        else if (gruppo === 'scuri') colori = coloriScuri;
-    } else if (mat === 'Legno') {
-        if (gruppo === 'legno1') colori = coloriLegno1;
-        else if (gruppo === 'legno2+3') colori = coloriLegno23;
-    }
-    
-    if (colori.length === 0) {
-        return '<span class="text-xs text-gray-400 mt-1 block">← Gruppo Colore</span>';
-    }
-    
-    // Se sync attivo, mostra valore ma disabilitato
-    if (syncAttivo) {
-        const coloreObj = colori.find(c => c.code === displayValue);
-        const nomeColore = coloreObj ? coloreObj.name : (displayValue || 'Da serramento');
-        return `
-            <input type="text" 
-                   value="${nomeColore}"
-                   disabled
-                   class="w-full compact-input border rounded mt-1 bg-blue-100 text-gray-600 text-xs">
-        `;
-    }
-    
-    // Se sync disattivo, select editabile
-    let options = '<option value="">--</option>';
-    colori.forEach(c => {
-        const sel = displayValue === c.code ? 'selected' : '';
-        options += `<option value="${c.code}" ${sel}>${c.name}</option>`;
-    });
-    
-    return `
-        <select onchange="updateProduct('${projectId}', '${posId}', 'cassonetto', 'coloreCass', this.value)"
-                class="w-full compact-input border rounded mt-1">
-            ${options}
-        </select>
-    `;
+    return CASSONETTI_MODULE.renderSelectColorePos(projectId, posId, cas, coloreInfisso);
 }
 
 // 🔄 FUNZIONE DINAMICA: Aggiorna dropdown colori quando cambia finitura - v4.39 (base v4.33)
