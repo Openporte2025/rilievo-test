@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!--
-     Open Porte v6.02 - 📋 Campo unico Nome Completo + Wizard IVA
+     Open Porte v6.04 - 📦 Cassonetti Module + Catalogo Portoncini
     ═══════════════════════════════════════════════════════════════
+    🆕 v6.04: cassonetti-module.js centralizzato + fix catalogo portoncini
     🆕 v6.02: Campo unico "Nome Completo" (nome+cognome uniti) + retrocompatibilità
     🆕 v6.01: iva-detrazioni.js - Wizard IVA condiviso in scheda cliente
     🆕 v6.00: Rimosso radio duplicato "Tipo Infisso Associato" → badge auto da posizione
@@ -29,7 +30,7 @@
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <title>Open Porte v6.03 - Indirizzo Residenza + Wizard IVA</title>
+    <title>Open Porte v6.04 - Cassonetti Module + Catalogo Portoncini</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -84,6 +85,9 @@
           
     <!-- 🆕 v5.84: Opzioni Prodotti centralizzate (DOPO finstral-opzioni per integrare vetri) -->
     <script src="https://openporte2025.github.io/shared-database/opzioni-prodotti.js"></script>
+    
+    <!-- 🆕 v6.04: Cassonetti Module centralizzato (PRIMA di campi-prodotti) -->
+    <script src="https://openporte2025.github.io/shared-database/cassonetti-module.js"></script>
     
     <!-- 🆕 v5.93: Campi Prodotti centralizzati + Renderer config globale -->
     <script src="https://openporte2025.github.io/shared-database/campi-prodotti.js"></script>
@@ -150,7 +154,6 @@
     <!-- 📦 v5.88: Export centralizzato posizioni -->
     <script src="https://openporte2025.github.io/shared-database/export-utils.js"></script>
     <script src="https://openporte2025.github.io/shared-database/preventivo-engine.js"></script>
-    <script src="https://openporte2025.github.io/shared-database/cassonetti-module.js"></script> 
     <script src="js/app.js"></script>
 
 </body>
