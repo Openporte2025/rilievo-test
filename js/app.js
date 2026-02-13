@@ -22842,11 +22842,8 @@ window.updateMisuraWithValidation = (projectId, posId, field, value) => {
         const pos = project.positions.find(p => p.id === posId);
         if (pos) {
             // 🛡️ Se l'utente modifica una misura che aveva un override, rimuovi l'override
-            // perché il valore è cambiato e deve essere rivalidato
             if (pos.validationOverrides && pos.validationOverrides[field]) {
                 delete pos.validationOverrides[field];
-                
-                // Se non ci sono più override, rimuovi l'oggetto intero
                 if (Object.keys(pos.validationOverrides).length === 0) {
                     delete pos.validationOverrides;
                 }
@@ -22856,15 +22853,34 @@ window.updateMisuraWithValidation = (projectId, posId, field, value) => {
     
     updateMisura(projectId, posId, field, value);
     
-    // ✅ NUOVO: Ricalcola automaticamente tutti i BRM di questa posizione quando cambiano le misure
+    // ✅ Ricalcola BRM di questa posizione
     if (project) {
         const pos = project.positions.find(p => p.id === posId);
         if (pos) {
             ricalcolaBRMPerPosizione(project, pos);
+            
+            // 🆕 v6.03: Aggiorna DOM diretto BRM (senza render() per non chiudere tastiera iPad)
+            const tipi = ['infisso', 'persiana', 'tapparella', 'zanzariera', 'cassonetto'];
+            tipi.forEach(tipo => {
+                const prod = pos[tipo] || pos[tipo + 'Config'] || {};
+                const elL = document.getElementById(`brm-l-result-${tipo}-${posId}`);
+                const elH = document.getElementById(`brm-h-result-${tipo}-${posId}`);
+                if (elL && prod.BRM_L) elL.value = prod.BRM_L;
+                if (elH && prod.BRM_H) elH.value = prod.BRM_H;
+            });
+            
+            // Aggiorna anche validazione visiva del campo appena modificato
+            const inputEl = document.activeElement;
+            if (inputEl && inputEl.tagName === 'INPUT') {
+                const msg = getFieldValidationMessage ? getFieldValidationMessage(project, pos, field) : '';
+                const msgEl = inputEl.parentElement?.querySelector('.validation-msg');
+                if (msgEl) msgEl.innerHTML = msg;
+            }
         }
     }
     
-    render();
+    // 🆕 v6.03: saveState() senza render() — preserva focus tastiera iPad
+    saveState();
 };
 
 window.enableOverride = (projectId, posId) => {
