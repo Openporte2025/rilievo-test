@@ -3933,6 +3933,15 @@ async function manualDownloadFromGitHub() {
                             } else {
                                 // 🔧 v5.91: Merge stato anche se skip
                                 if (proj.stato) existing.stato = proj.stato;
+                                // 🆕 v6.04: Merge dati Dashboard
+                                if (proj.ivaDetrazioni && !existing.ivaDetrazioni) existing.ivaDetrazioni = proj.ivaDetrazioni;
+                                if (proj.immobile && !existing.immobile) existing.immobile = proj.immobile;
+                                if (proj.clientData) {
+                                    if (!existing.clientData) existing.clientData = {};
+                                    Object.keys(proj.clientData).forEach(k => {
+                                        if (!existing.clientData[k]) existing.clientData[k] = proj.clientData[k];
+                                    });
+                                }
                                 console.log('⏭️ Skipped (local is same or newer):', proj.name);
                             }
                         } else {
@@ -3941,6 +3950,14 @@ async function manualDownloadFromGitHub() {
                             if (proj.stato && proj.stato !== 'preventivo') {
                                 existing.stato = proj.stato;
                                 console.log(`   🔄 Mergiato stato: ${proj.stato}`);
+                            }
+                            // 🆕 v6.04: Merge dati Dashboard comunque
+                            if (proj.ivaDetrazioni && !existing.ivaDetrazioni) existing.ivaDetrazioni = proj.ivaDetrazioni;
+                            if (proj.immobile) {
+                                if (!existing.immobile) existing.immobile = {};
+                                Object.keys(proj.immobile).forEach(k => {
+                                    if (!existing.immobile[k]) existing.immobile[k] = proj.immobile[k];
+                                });
                             }
                             console.warn(`⚠️ CONFLICT: Local v${localVersion} > GitHub v${githubVersion} for "${proj.name}"`);
                             console.warn('   → Keeping local version. Upload to sync.');
@@ -4287,6 +4304,30 @@ async function downloadFromGitHub() {
                                 existing.stato = project.stato;
                                 console.log(`   🔄 Mergiato stato: ${project.stato}`);
                             }
+                            // 🆕 v6.04: Merge dati Dashboard (immobile, ivaDetrazioni, clientData)
+                            if (project.ivaDetrazioni && !existing.ivaDetrazioni) {
+                                existing.ivaDetrazioni = project.ivaDetrazioni;
+                                console.log(`   🔄 Mergiato ivaDetrazioni da GitHub`);
+                            }
+                            if (project.immobile) {
+                                if (!existing.immobile) existing.immobile = {};
+                                // Merge: prendi da GitHub i campi che mancano localmente
+                                Object.keys(project.immobile).forEach(k => {
+                                    if (existing.immobile[k] === undefined || existing.immobile[k] === null || existing.immobile[k] === '') {
+                                        existing.immobile[k] = project.immobile[k];
+                                    }
+                                });
+                                console.log(`   🔄 Mergiato immobile da GitHub`);
+                            }
+                            if (project.clientData) {
+                                if (!existing.clientData) existing.clientData = {};
+                                Object.keys(project.clientData).forEach(k => {
+                                    if (existing.clientData[k] === undefined || existing.clientData[k] === null || existing.clientData[k] === '') {
+                                        existing.clientData[k] = project.clientData[k];
+                                    }
+                                });
+                                console.log(`   🔄 Mergiato clientData da GitHub`);
+                            }
                             skippedCount++;
                             // Verrà ricaricato da auto-sync
                         } else {
@@ -4303,6 +4344,13 @@ async function downloadFromGitHub() {
                                 // 🔧 v5.91: Merge stato da GitHub anche se identici
                                 if (project.stato) {
                                     existing.stato = project.stato;
+                                }
+                                // 🆕 v6.04: Merge dati Dashboard anche se identici
+                                if (project.ivaDetrazioni && !existing.ivaDetrazioni) {
+                                    existing.ivaDetrazioni = project.ivaDetrazioni;
+                                }
+                                if (project.immobile && !existing.immobile) {
+                                    existing.immobile = project.immobile;
                                 }
                                 skippedCount++;
                             }
