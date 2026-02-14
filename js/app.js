@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🪟 APP OPENPORTE - Logica Applicazione
+// 📋 v6.04: Lettura/scrittura cliente/immobile/IVA centralizzata via DATA_MANAGER (14 FEB 2026)
 // 📋 v6.03: Indirizzo Residenza separato + salvataggio clientData esteso (12 FEB 2026)
 // 📋 v6.02: Campo unico "Nome Completo" cliente + Wizard IVA in Dati Fiscali (12 FEB 2026)
 // 📋 v6.01: Wizard IVA/Detrazioni in scheda cliente + initWizardIVARilievo() (10 FEB 2026)
@@ -4598,26 +4599,37 @@ async function uploadSingleProjectToGitHub(project) {
             name: updatedProject.name || '',
             client: updatedProject.client || '',
             
-            // DATI CLIENTE COMPLETI
-            clientData: {
-                nomeCompleto: updatedProject.clientData?.nomeCompleto || updatedProject.client || '',
-                nome: updatedProject.clientData?.nome || '',
-                cognome: updatedProject.clientData?.cognome || '',
-                codiceFiscale: updatedProject.clientData?.codiceFiscale || '',
-                telefono: updatedProject.clientData?.telefono || '',
-                email: updatedProject.clientData?.email || '',
-                // Indirizzo Residenza
-                residenzaIndirizzo: updatedProject.clientData?.residenzaIndirizzo || '',
-                residenzaComune: updatedProject.clientData?.residenzaComune || '',
-                residenzaProvincia: updatedProject.clientData?.residenzaProvincia || '',
-                residenzaCap: updatedProject.clientData?.residenzaCap || '',
-                // Indirizzo Lavori (in immobile)
-                indirizzo: updatedProject.clientData?.indirizzo || '',
-                citta: updatedProject.clientData?.citta || '',
-                cap: updatedProject.clientData?.cap || '',
-                piano: updatedProject.clientData?.piano || '',
-                note: updatedProject.clientData?.note || ''
-            },
+            // 🆕 v6.04: clientData/immobile/ivaDetrazioni via DATA_MANAGER
+            ...(window.DATA_MANAGER && window.DATA_MANAGER.preparaDatiAnagraficaExport 
+                ? window.DATA_MANAGER.preparaDatiAnagraficaExport(updatedProject)
+                : {
+                    clientData: {
+                        nomeCompleto: updatedProject.clientData?.nomeCompleto || updatedProject.client || '',
+                        nome: updatedProject.clientData?.nome || '',
+                        cognome: updatedProject.clientData?.cognome || '',
+                        codiceFiscale: updatedProject.clientData?.codiceFiscale || '',
+                        telefono: updatedProject.clientData?.telefono || '',
+                        email: updatedProject.clientData?.email || '',
+                        residenzaIndirizzo: updatedProject.clientData?.residenzaIndirizzo || '',
+                        residenzaComune: updatedProject.clientData?.residenzaComune || '',
+                        residenzaProvincia: updatedProject.clientData?.residenzaProvincia || '',
+                        residenzaCap: updatedProject.clientData?.residenzaCap || ''
+                    },
+                    immobile: updatedProject.immobile || null,
+                    ivaDetrazioni: updatedProject.ivaDetrazioni || null
+                }
+            ),
+            // Legacy: indirizzo lavori in clientData per vecchie versioni
+            ...(updatedProject.clientData ? {
+                clientData: {
+                    ...(window.DATA_MANAGER ? window.DATA_MANAGER.preparaDatiAnagraficaExport(updatedProject).clientData : {}),
+                    indirizzo: updatedProject.clientData?.indirizzo || updatedProject.immobile?.indirizzo || '',
+                    citta: updatedProject.clientData?.citta || updatedProject.immobile?.comune || '',
+                    cap: updatedProject.clientData?.cap || updatedProject.immobile?.cap || '',
+                    piano: updatedProject.clientData?.piano || updatedProject.immobile?.piano || '',
+                    note: updatedProject.clientData?.note || ''
+                }
+            } : {}),
             
             // 📎 v5.27: LINK SCHIZZO NOTABILITY
             linkSchizzo: updatedProject.linkSchizzo || '',
@@ -10672,14 +10684,19 @@ function renderStep1ClientData(project) {
 }
 
 // 🆕 v6.01: Init wizard IVA dopo render step 1
-// 🆕 v6.03: Callback globale per wizard IVA statico (chiamata da onchange inline)
+// 🆕 v6.04: Callback globale usa DATA_MANAGER.scriviIVA
 window.onWizardIVAChange = function(dati, risultato) {
     if (!state.currentProject) return;
     const project = state.projects.find(p => p.id === state.currentProject);
     if (!project) return;
-    project.ivaDetrazioni = dati;
-    if (!project.immobile) project.immobile = {};
-    project.immobile.ivaDetrazioni = dati;
+    const DM = window.DATA_MANAGER;
+    if (DM) {
+        DM.scriviIVA(project, dati);
+    } else {
+        project.ivaDetrazioni = dati;
+        if (!project.immobile) project.immobile = {};
+        project.immobile.ivaDetrazioni = dati;
+    }
     saveState();
 };
 
@@ -10695,16 +10712,21 @@ function initWizardIVARilievo(projectId) {
     container.innerHTML = '';
     
     if (typeof OPZIONI !== 'undefined' && OPZIONI.IVA_DETRAZIONI) {
-        const saved = project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {};
+        const saved = (window.DATA_MANAGER) ? window.DATA_MANAGER.leggiIVA(project) : (project.ivaDetrazioni || project.immobile?.ivaDetrazioni || {});
         // Flag per bloccare onChange durante init (evita loop render)
         let initDone = false;
         window._wizardIVARilievo = OPZIONI.IVA_DETRAZIONI.renderWizardIVA(containerId, saved, {
             compact: false,
             onChange: function(dati) {
                 if (!initDone) return; // Blocca durante init
-                project.ivaDetrazioni = dati;
-                if (!project.immobile) project.immobile = {};
-                project.immobile.ivaDetrazioni = dati;
+                const DM = window.DATA_MANAGER;
+                if (DM) {
+                    DM.scriviIVA(project, dati);
+                } else {
+                    project.ivaDetrazioni = dati;
+                    if (!project.immobile) project.immobile = {};
+                    project.immobile.ivaDetrazioni = dati;
+                }
                 saveState();
             }
         });
@@ -21605,18 +21627,25 @@ window.updateClienteField = (field, value, sezione = 'cliente') => {
     const project = state.projects.find(p => p.id === state.currentProject);
     if (!project) return;
     
+    const DM = window.DATA_MANAGER;
+    
     if (sezione === 'immobile') {
-        // Aggiorna immobile
-        if (!project.immobile) project.immobile = {};
-        project.immobile[field] = value;
+        if (DM) {
+            DM.scriviImmobile(project, field, value);
+        } else {
+            if (!project.immobile) project.immobile = {};
+            project.immobile[field] = value;
+        }
         console.log(`🏠 Immobile.${field} = ${value}`);
     } else {
-        // Aggiorna cliente
-        if (!project.cliente) project.cliente = {};
-        if (!project.clientData) project.clientData = {};
-        
-        project.cliente[field] = value;
-        project.clientData[field] = value; // Retrocompatibilità
+        if (DM) {
+            DM.scriviCliente(project, field, value);
+        } else {
+            if (!project.cliente) project.cliente = {};
+            if (!project.clientData) project.clientData = {};
+            project.cliente[field] = value;
+            project.clientData[field] = value;
+        }
         
         // 🆕 v6.02: Campo unico nomeCompleto → aggiorna client + retrocompatibilità nome/cognome
         if (field === 'nomeCompleto') {
